@@ -10,7 +10,7 @@ export interface EmailContent {
  */
 export function generateSupplierEmail(
   supplier: Supplier,
-  materials: MaterialItem[],
+  materials: Array<MaterialItem & { allocatedDemand?: number; sharePercentage?: string }>,
   planStartDate: string,
   planEndDate: string,
   companyName: string = "贵司"
@@ -32,17 +32,18 @@ export function generateSupplierEmail(
 `;
   
   // 添加物料表格
-  body += '| 物料料号 | 物料名称 | 规格 | 需求总量 | 当前库存 | 缺口数量 | 在途数量 |\n';
-  body += '| :--- | :--- | :--- | ---: | ---: | ---: | ---: |\n';
+  body += '| 物料料号 | 物料名称 | 规格 | 需求总量 | 分配数量 | 份额 | 当前库存 | 缺口数量 |\n';
+  body += '| :--- | :--- | :--- | ---: | ---: | ---: | ---: | ---: |\n';
   
   for (const material of materials) {
     const spec = material.materialSpec || '-';
-    const demand = material.demand ? Number(material.demand).toFixed(0) : '0';
+    const totalDemand = material.demand ? Number(material.demand).toFixed(0) : '0';
+    const allocatedDemand = material.allocatedDemand !== undefined ? material.allocatedDemand.toFixed(0) : totalDemand;
+    const sharePercentage = material.sharePercentage ? `${parseFloat(material.sharePercentage).toFixed(1)}%` : '100%';
     const inventory = material.inventory ? Number(material.inventory).toFixed(0) : '0';
     const shortage = material.shortage ? Number(material.shortage).toFixed(0) : '0';
-    const inTransit = material.inTransit ? Number(material.inTransit).toFixed(0) : '0';
     
-    body += `| ${material.materialCode} | ${material.materialName} | ${spec} | ${demand} | ${inventory} | ${shortage} | ${inTransit} |\n`;
+    body += `| ${material.materialCode} | ${material.materialName} | ${spec} | ${totalDemand} | **${allocatedDemand}** | ${sharePercentage} | ${inventory} | ${shortage} |\n`;
   }
   
   body += `

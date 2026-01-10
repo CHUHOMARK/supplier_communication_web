@@ -15,6 +15,13 @@
       "when": 1768021691611,
       "tag": "0001_loving_iron_man",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1768022889894,
+      "tag": "0002_outstanding_golden_guardian",
+      "breakpoints": true
     }
   ]
 }

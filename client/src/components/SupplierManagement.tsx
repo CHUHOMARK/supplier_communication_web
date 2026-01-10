@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Users, Plus, Upload, CheckCircle, AlertCircle, Trash2, Edit } from "lucide-react";
+import { Users, Plus, Upload, CheckCircle, AlertCircle, Trash2, Edit, Percent } from "lucide-react";
+import ShareAllocationDialog from "@/components/ShareAllocationDialog";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 
@@ -16,6 +17,8 @@ export default function SupplierManagement({ onMappingComplete }: SupplierManage
   const [mappingFile, setMappingFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
+  const [selectedMaterial, setSelectedMaterial] = useState<{ code: string; name: string } | null>(null);
   const [newSupplier, setNewSupplier] = useState({
     supplierName: "",
     contactPerson: "",
@@ -261,13 +264,15 @@ export default function SupplierManagement({ onMappingComplete }: SupplierManage
                       <p className="text-primary">已映射物料：{getMappingCount(supplier.id)} 个</p>
                     </div>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleDeleteSupplier(supplier.id)}
-                  >
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDeleteSupplier(supplier.id)}
+                    >
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -279,6 +284,86 @@ export default function SupplierManagement({ onMappingComplete }: SupplierManage
           )}
         </CardContent>
       </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Percent className="h-5 w-5" />
+            物料份额分配
+          </CardTitle>
+          <CardDescription>为每个物料分配多个供应商及其份额</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {mappingsLoading ? (
+            <div className="text-center py-8 text-muted-foreground">加载中...</div>
+          ) : mappings && mappings.length > 0 ? (
+            <div className="space-y-2">
+              {/* 按物料分组显示 */}
+              {Array.from(
+                mappings.reduce((map, m) => {
+                  if (!map.has(m.materialCode)) {
+                    map.set(m.materialCode, []);
+                  }
+                  map.get(m.materialCode)!.push(m);
+                  return map;
+                }, new Map<string, typeof mappings>())
+              ).map(([materialCode, materialMappings]) => (
+                <div
+                  key={materialCode}
+                  className="p-4 border rounded-lg hover:bg-accent transition-colors"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <div>
+                      <p className="font-medium">{materialCode}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {materialMappings.length} 个供应商
+                      </p>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        setSelectedMaterial({ code: materialCode, name: materialCode });
+                        setShareDialogOpen(true);
+                      }}
+                    >
+                      <Edit className="h-4 w-4 mr-2" />
+                      编辑份额
+                    </Button>
+                  </div>
+                  <div className="space-y-1">
+                    {materialMappings.map((m) => (
+                      <div key={m.id} className="flex items-center justify-between text-sm">
+                        <span>{m.supplier?.supplierName || '未知供应商'}</span>
+                        <span className="font-medium text-primary">
+                          {parseFloat(m.sharePercentage || "100").toFixed(1)}%
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-muted-foreground flex flex-col items-center gap-2">
+              <AlertCircle className="h-8 w-8" />
+              <p>暂无映射，请先上传映射表</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {selectedMaterial && (
+        <ShareAllocationDialog
+          open={shareDialogOpen}
+          onOpenChange={setShareDialogOpen}
+          materialCode={selectedMaterial.code}
+          materialName={selectedMaterial.name}
+          onSuccess={() => {
+            utils.mapping.list.invalidate();
+          }}
+        />
+      )}
     </div>
   );
 }

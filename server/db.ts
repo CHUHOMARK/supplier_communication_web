@@ -180,6 +180,18 @@ export async function createMaterialSupplierMapping(mapping: InsertMaterialSuppl
   return result[0].insertId;
 }
 
+export async function getMaterialSupplierMappingsByMaterialCode(userId: number, materialCode: string) {
+  const db = await getDb();
+  if (!db) return [];
+  
+  return await db.select().from(materialSupplierMappings).where(
+    and(
+      eq(materialSupplierMappings.userId, userId),
+      eq(materialSupplierMappings.materialCode, materialCode)
+    )
+  );
+}
+
 export async function getMaterialSupplierMappingsByUserId(userId: number) {
   const db = await getDb();
   if (!db) return [];

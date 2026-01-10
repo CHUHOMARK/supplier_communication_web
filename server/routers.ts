@@ -231,24 +231,59 @@ export const appRouter = router({
       }));
     }),
     
-    // 创建或更新映射
+    // 创建或更新映射（支持多供应商）
     upsert: protectedProcedure
       .input(z.object({
         materialCode: z.string(),
-        supplierId: z.number(),
+        suppliers: z.array(z.object({
+          supplierId: z.number(),
+          sharePercentage: z.number().min(0).max(100),
+          priority: z.number().optional(),
+        })),
       }))
       .mutation(async ({ ctx, input }) => {
+        // 验证份额总和
+        const totalShare = input.suppliers.reduce((sum, s) => sum + s.sharePercentage, 0);
+        if (Math.abs(totalShare - 100) > 0.01 && input.suppliers.length > 0) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: `供应商份额总和必须为100%，当前为${totalShare.toFixed(2)}%`,
+          });
+        }
+        
         // 删除旧映射
         await db.deleteMaterialSupplierMappingsByMaterialCode(ctx.user.id, input.materialCode);
         
         // 创建新映射
-        const mappingId = await db.createMaterialSupplierMapping({
-          userId: ctx.user.id,
-          materialCode: input.materialCode,
-          supplierId: input.supplierId,
-        });
+        const mappingIds = [];
+        for (let i = 0; i < input.suppliers.length; i++) {
+          const supplier = input.suppliers[i];
+          const mappingId = await db.createMaterialSupplierMapping({
+            userId: ctx.user.id,
+            materialCode: input.materialCode,
+            supplierId: supplier.supplierId,
+            sharePercentage: supplier.sharePercentage.toFixed(2),
+            priority: supplier.priority || (i + 1),
+          });
+          mappingIds.push(Number(mappingId));
+        }
         
-        return { mappingId: Number(mappingId) };
+        return { mappingIds };
+      }),
+    
+    // 获取特定物料的映射
+    getByMaterialCode: protectedProcedure
+      .input(z.object({ materialCode: z.string() }))
+      .query(async ({ ctx, input }) => {
+        const mappings = await db.getMaterialSupplierMappingsByMaterialCode(ctx.user.id, input.materialCode);
+        const suppliers = await db.getSuppliersByUserId(ctx.user.id);
+        
+        const supplierMap = new Map(suppliers.map(s => [s.id, s]));
+        
+        return mappings.map(m => ({
+          ...m,
+          supplier: supplierMap.get(m.supplierId),
+        }));
       }),
     
     // 删除映射
@@ -281,8 +316,8 @@ export const appRouter = router({
         const suppliers = await db.getSuppliersByUserId(ctx.user.id);
         const mappings = await db.getMaterialSupplierMappingsByUserId(ctx.user.id);
         
-        // 按供应商分组物料
-        const supplierMaterialsMap = new Map<number, typeof items>();
+        // 按供应商分组物料，并计算份额分配后的数量
+        const supplierMaterialsMap = new Map<number, Array<typeof items[0] & { allocatedDemand?: number; sharePercentage?: string }>>();
         
         for (const mapping of mappings) {
           const material = items.find(item => item.materialCode === mapping.materialCode);
@@ -290,7 +325,17 @@ export const appRouter = router({
             if (!supplierMaterialsMap.has(mapping.supplierId)) {
               supplierMaterialsMap.set(mapping.supplierId, []);
             }
-            supplierMaterialsMap.get(mapping.supplierId)!.push(material);
+            
+            // 计算该供应商应分配的数量
+            const demand = material.demand ? parseFloat(material.demand) : 0;
+            const sharePercentage = parseFloat(mapping.sharePercentage || "100");
+            const allocatedDemand = Math.round(demand * sharePercentage / 100);
+            
+            supplierMaterialsMap.get(mapping.supplierId)!.push({
+              ...material,
+              allocatedDemand,
+              sharePercentage: mapping.sharePercentage,
+            });
           }
         }
         

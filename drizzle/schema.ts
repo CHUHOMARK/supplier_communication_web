@@ -1,4 +1,4 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, decimal, json } from "drizzle-orm/mysql-core";
+import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, json, decimal } from "drizzle-orm/mysql-core";
 
 /**
  * Core user table backing auth flow.
@@ -19,7 +19,7 @@ export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 
 /**
- * 物料计划表 - 存储上传的物料计划数据
+ * 物料计划表
  */
 export const materialPlans = mysqlTable("material_plans", {
   id: int("id").autoincrement().primaryKey(),
@@ -34,21 +34,20 @@ export type MaterialPlan = typeof materialPlans.$inferSelect;
 export type InsertMaterialPlan = typeof materialPlans.$inferInsert;
 
 /**
- * 物料明细表 - 存储物料计划中的具体物料信息
+ * 物料明细表
  */
 export const materialItems = mysqlTable("material_items", {
   id: int("id").autoincrement().primaryKey(),
   planId: int("planId").notNull(),
   materialCode: varchar("materialCode", { length: 100 }).notNull(),
-  materialName: text("materialName").notNull(),
+  materialName: varchar("materialName", { length: 255 }).notNull(),
   materialSpec: text("materialSpec"),
-  unitUsage: decimal("unitUsage", { precision: 10, scale: 2 }),
-  demand: decimal("demand", { precision: 15, scale: 2 }),
-  inventory: decimal("inventory", { precision: 15, scale: 2 }),
-  shortage: decimal("shortage", { precision: 15, scale: 2 }),
-  inTransit: decimal("inTransit", { precision: 15, scale: 2 }),
-  total: decimal("total", { precision: 15, scale: 2 }),
-  // 存储每日到货计划的JSON数据 {date: amount}
+  unitUsage: text("unitUsage"),
+  demand: text("demand"),
+  inventory: text("inventory"),
+  shortage: text("shortage"),
+  inTransit: text("inTransit"),
+  total: text("total"),
   dailySchedule: json("dailySchedule").$type<Record<string, number>>(),
 });
 
@@ -56,7 +55,7 @@ export type MaterialItem = typeof materialItems.$inferSelect;
 export type InsertMaterialItem = typeof materialItems.$inferInsert;
 
 /**
- * 供应商信息表
+ * 供应商表
  */
 export const suppliers = mysqlTable("suppliers", {
   id: int("id").autoincrement().primaryKey(),
@@ -74,13 +73,23 @@ export type Supplier = typeof suppliers.$inferSelect;
 export type InsertSupplier = typeof suppliers.$inferInsert;
 
 /**
- * 物料-供应商映射表
+ * 物料-供应商映射表（支持多供应商份额分配）
  */
 export const materialSupplierMappings = mysqlTable("material_supplier_mappings", {
   id: int("id").autoincrement().primaryKey(),
   userId: int("userId").notNull(),
   materialCode: varchar("materialCode", { length: 100 }).notNull(),
   supplierId: int("supplierId").notNull(),
+  /**
+   * 供应商份额（百分比，0-100）
+   * 同一物料的所有供应商份额总和应为100
+   */
+  sharePercentage: decimal("sharePercentage", { precision: 5, scale: 2 }).default("100.00").notNull(),
+  /**
+   * 优先级（数字越小优先级越高）
+   */
+  priority: int("priority").default(1).notNull(),
+  notes: text("notes"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
@@ -95,7 +104,7 @@ export const generatedEmails = mysqlTable("generated_emails", {
   id: int("id").autoincrement().primaryKey(),
   planId: int("planId").notNull(),
   supplierId: int("supplierId").notNull(),
-  emailSubject: text("emailSubject").notNull(),
+  emailSubject: varchar("emailSubject", { length: 500 }).notNull(),
   emailBody: text("emailBody").notNull(),
   generatedAt: timestamp("generatedAt").defaultNow().notNull(),
 });
