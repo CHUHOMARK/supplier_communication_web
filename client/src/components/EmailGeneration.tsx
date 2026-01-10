@@ -37,6 +37,15 @@ export default function EmailGeneration() {
     { enabled: false }
   );
 
+  const sendEmailMutation = trpc.email.send.useMutation({
+    onSuccess: () => {
+      toast.success('邮件发送成功');
+    },
+    onError: (error) => {
+      toast.error(`发送失败：${error.message}`);
+    },
+  });
+
   const handleGenerateEmails = () => {
     if (!selectedPlanId) {
       toast.error('请先选择物料计划');
@@ -228,6 +237,26 @@ export default function EmailGeneration() {
                       >
                         <Download className="h-4 w-4 mr-2" />
                         下载
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={() => {
+                          if (!email.supplier?.email) {
+                            toast.error('该供应商未设置邮箱');
+                            return;
+                          }
+                          sendEmailMutation.mutate({
+                            planId: Number(selectedPlanId),
+                            supplierId: email.supplierId,
+                            recipientEmail: email.supplier.email,
+                            subject: email.emailSubject,
+                            content: email.emailBody,
+                          });
+                        }}
+                        disabled={!email.supplier?.email || sendEmailMutation.isPending}
+                      >
+                        <Mail className="h-4 w-4 mr-2" />
+                        发送
                       </Button>
                     </div>
                   </div>

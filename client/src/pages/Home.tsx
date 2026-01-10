@@ -3,7 +3,8 @@ import { getLoginUrl } from "@/const";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Upload, Users, Mail, FileSpreadsheet } from "lucide-react";
+import { Upload, Users, Mail, FileSpreadsheet, Settings as SettingsIcon } from "lucide-react";
+import { Link } from "wouter";
 import { useState } from "react";
 import MaterialPlanUpload from "@/components/MaterialPlanUpload";
 import SupplierManagement from "@/components/SupplierManagement";
@@ -71,6 +72,12 @@ export default function Home() {
             <p className="text-sm text-muted-foreground">一站式物料计划邮件生成与分发平台</p>
           </div>
           <div className="flex items-center gap-4">
+            <Link href="/settings">
+              <Button variant="outline" size="sm">
+                <SettingsIcon className="h-4 w-4 mr-2" />
+                设置
+              </Button>
+            </Link>
             <span className="text-sm text-muted-foreground">欢迎，{user.name || user.email}</span>
           </div>
         </div>

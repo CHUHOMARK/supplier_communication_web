@@ -115,6 +115,26 @@ export type ShareChangeHistory = typeof shareChangeHistory.$inferSelect;
 export type InsertShareChangeHistory = typeof shareChangeHistory.$inferInsert;
 
 /**
+ * 邮件发送记录表
+ */
+export const emailSendLogs = mysqlTable("email_send_logs", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  planId: int("planId").notNull(),
+  supplierId: int("supplierId").notNull(),
+  recipientEmail: varchar("recipientEmail", { length: 320 }).notNull(),
+  subject: text("subject").notNull(),
+  content: text("content").notNull(),
+  status: mysqlEnum("status", ["pending", "sent", "failed"]).default("pending").notNull(),
+  errorMessage: text("errorMessage"),
+  sentAt: timestamp("sentAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type EmailSendLog = typeof emailSendLogs.$inferSelect;
+export type InsertEmailSendLog = typeof emailSendLogs.$inferInsert;
+
+/**
  * 生成的邮件记录表
  */
 export const generatedEmails = mysqlTable("generated_emails", {

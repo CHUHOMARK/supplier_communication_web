@@ -9,11 +9,13 @@ import {
   materialSupplierMappings,
   shareChangeHistory,
   generatedEmails,
+  emailSendLogs,
   InsertMaterialPlan,
   InsertMaterialItem,
   InsertSupplier,
   InsertMaterialSupplierMapping,
   InsertGeneratedEmail,
+  InsertEmailSendLog,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -324,4 +326,180 @@ export async function getShareChangeHistory(userId: number, materialCode?: strin
     .where(and(...conditions))
     .orderBy(desc(shareChangeHistory.changedAt))
     .limit(100);
+}
+
+// ============================================
+// 邮件发送记录相关函数
+// ============================================
+
+export async function createEmailSendLog(log: InsertEmailSendLog) {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  const result = await db.insert(emailSendLogs).values(log);
+  return result[0].insertId;
+}
+
+export async function updateEmailSendLogStatus(
+  logId: number,
+  status: "sent" | "failed",
+  errorMessage?: string
+) {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  await db
+    .update(emailSendLogs)
+    .set({
+      status,
+      errorMessage: errorMessage || null,
+      sentAt: status === "sent" ? new Date() : undefined,
+    })
+    .where(eq(emailSendLogs.id, logId));
+}
+
+export async function getEmailSendLogsByPlanId(planId: number) {
+  const db = await getDb();
+  if (!db) {
+    return [];
+  }
+
+  return await db
+    .select()
+    .from(emailSendLogs)
+    .where(eq(emailSendLogs.planId, planId))
+    .orderBy(desc(emailSendLogs.createdAt));
+}
+
+export async function getEmailSendLogsByUserId(userId: number) {
+  const db = await getDb();
+  if (!db) {
+    return [];
+  }
+
+  return await db
+    .select()
+    .from(emailSendLogs)
+    .where(eq(emailSendLogs.userId, userId))
+    .orderBy(desc(emailSendLogs.createdAt));
+}
+
+// ============================================
+// 数据重置相关函数
+// ============================================
+
+export async function resetUserData(userId: number, options: {
+  resetMaterialPlans?: boolean;
+  resetSuppliers?: boolean;
+  resetMappings?: boolean;
+  resetEmails?: boolean;
+  resetEmailLogs?: boolean;
+}) {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  const results: Record<string, number> = {};
+
+  // 重置物料计划和物料项
+  if (options.resetMaterialPlans) {
+    const plans = await db.select().from(materialPlans).where(eq(materialPlans.userId, userId));
+    const planIds = plans.map(p => p.id);
+    
+    if (planIds.length > 0) {
+      // 删除物料项
+      for (const planId of planIds) {
+        await db.delete(materialItems).where(eq(materialItems.planId, planId));
+      }
+      // 删除物料计划
+      const result = await db.delete(materialPlans).where(eq(materialPlans.userId, userId));
+      results.materialPlans = planIds.length;
+    } else {
+      results.materialPlans = 0;
+    }
+  }
+
+  // 重置供应商
+  if (options.resetSuppliers) {
+    const result = await db.delete(suppliers).where(eq(suppliers.userId, userId));
+    results.suppliers = result[0].affectedRows;
+  }
+
+  // 重置供应商映射
+  if (options.resetMappings) {
+    const result = await db.delete(materialSupplierMappings).where(eq(materialSupplierMappings.userId, userId));
+    results.mappings = result[0].affectedRows;
+  }
+
+  // 重置生成的邮件
+  if (options.resetEmails) {
+    const plans = await db.select().from(materialPlans).where(eq(materialPlans.userId, userId));
+    const planIds = plans.map(p => p.id);
+    
+    if (planIds.length > 0) {
+      let totalDeleted = 0;
+      for (const planId of planIds) {
+        const result = await db.delete(generatedEmails).where(eq(generatedEmails.planId, planId));
+        totalDeleted += result[0].affectedRows;
+      }
+      results.emails = totalDeleted;
+    } else {
+      results.emails = 0;
+    }
+  }
+
+  // 重置邮件发送记录
+  if (options.resetEmailLogs) {
+    const result = await db.delete(emailSendLogs).where(eq(emailSendLogs.userId, userId));
+    results.emailLogs = result[0].affectedRows;
+  }
+
+  return results;
+}
+
+export async function getUserDataStats(userId: number) {
+  const db = await getDb();
+  if (!db) {
+    return {
+      materialPlans: 0,
+      suppliers: 0,
+      mappings: 0,
+      emails: 0,
+      emailLogs: 0,
+    };
+  }
+
+  const plans = await db.select().from(materialPlans).where(eq(materialPlans.userId, userId));
+  const planIds = plans.map(p => p.id);
+  
+  let emailsCount = 0;
+  if (planIds.length > 0) {
+    for (const planId of planIds) {
+      const emails = await db.select().from(generatedEmails).where(eq(generatedEmails.planId, planId));
+      emailsCount += emails.length;
+    }
+  }
+  
+  const [
+    suppliersCount,
+    mappingsCount,
+    emailLogsCount,
+  ] = await Promise.all([
+    db.select().from(suppliers).where(eq(suppliers.userId, userId)),
+    db.select().from(materialSupplierMappings).where(eq(materialSupplierMappings.userId, userId)),
+    db.select().from(emailSendLogs).where(eq(emailSendLogs.userId, userId)),
+  ]);
+
+  return {
+    materialPlans: plans.length,
+    suppliers: suppliersCount.length,
+    mappings: mappingsCount.length,
+    emails: emailsCount,
+    emailLogs: emailLogsCount.length,
+  };
 }

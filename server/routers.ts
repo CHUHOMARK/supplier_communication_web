@@ -467,6 +467,113 @@ export const appRouter = router({
           filename: `邮件发送清单_${new Date().toISOString().split('T')[0]}.csv`,
         };
       }),
+    
+    // 发送邮件给供应商
+    send: protectedProcedure
+      .input(z.object({
+        planId: z.number(),
+        supplierId: z.number(),
+        recipientEmail: z.string().email(),
+        subject: z.string(),
+        content: z.string(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const { sendEmail } = await import('./emailService');
+        
+        // 创建发送记录
+        const logId = await db.createEmailSendLog({
+          userId: ctx.user.id,
+          planId: input.planId,
+          supplierId: input.supplierId,
+          recipientEmail: input.recipientEmail,
+          subject: input.subject,
+          content: input.content,
+          status: "pending",
+        });
+
+        // 发送邮件
+        const result = await sendEmail({
+          to: input.recipientEmail,
+          subject: input.subject,
+          html: input.content,
+        });
+
+        // 更新发送状态
+        await db.updateEmailSendLogStatus(
+          Number(logId),
+          result.success ? "sent" : "failed",
+          result.error
+        );
+
+        return {
+          success: result.success,
+          messageId: result.messageId,
+          error: result.error,
+        };
+      }),
+
+    // 批量发送邮件
+    sendBatch: protectedProcedure
+      .input(z.object({
+        planId: z.number(),
+        emails: z.array(z.object({
+          supplierId: z.number(),
+          recipientEmail: z.string().email(),
+          subject: z.string(),
+          content: z.string(),
+        })),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const { sendEmail } = await import('./emailService');
+        const results = [];
+
+        for (const email of input.emails) {
+          // 创建发送记录
+          const logId = await db.createEmailSendLog({
+            userId: ctx.user.id,
+            planId: input.planId,
+            supplierId: email.supplierId,
+            recipientEmail: email.recipientEmail,
+            subject: email.subject,
+            content: email.content,
+            status: "pending",
+          });
+
+          // 发送邮件
+          const result = await sendEmail({
+            to: email.recipientEmail,
+            subject: email.subject,
+            html: email.content,
+          });
+
+          // 更新发送状态
+          await db.updateEmailSendLogStatus(
+            Number(logId),
+            result.success ? "sent" : "failed",
+            result.error
+          );
+
+          results.push({
+            supplierId: email.supplierId,
+            success: result.success,
+            error: result.error,
+          });
+        }
+
+        return {
+          total: input.emails.length,
+          succeeded: results.filter(r => r.success).length,
+          failed: results.filter(r => !r.success).length,
+          results,
+        };
+      }),
+
+    // 获取邮件发送历史
+    getSendHistory: protectedProcedure
+      .input(z.object({ planId: z.number() }))
+      .query(async ({ input }) => {
+        return await db.getEmailSendLogsByPlanId(input.planId);
+      }),
   }),
 
   // 采购订单导入
@@ -569,6 +676,31 @@ export const appRouter = router({
           success: true,
           createdSuppliers,
           createdMappings,
+        };
+      }),
+  }),
+
+  // 数据重置
+  dataReset: router({
+    // 获取用户数据统计
+    getStats: protectedProcedure.query(async ({ ctx }) => {
+      return await db.getUserDataStats(ctx.user.id);
+    }),
+
+    // 重置数据
+    reset: protectedProcedure
+      .input(z.object({
+        resetMaterialPlans: z.boolean().optional(),
+        resetSuppliers: z.boolean().optional(),
+        resetMappings: z.boolean().optional(),
+        resetEmails: z.boolean().optional(),
+        resetEmailLogs: z.boolean().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const results = await db.resetUserData(ctx.user.id, input);
+        return {
+          success: true,
+          results,
         };
       }),
   }),
