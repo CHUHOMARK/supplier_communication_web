@@ -128,3 +128,10 @@
 - [x] 修复数据为undefined时的处理逻辑
 - [x] 添加数据验证和错误处理
 - [x] 测试修复后的功能
+
+## Bug修复 - supplierStatsQueries错误
+
+- [x] 分析supplierStatsQueries.map导致的undefined错误
+- [x] 移除supplierStatsQueries的map操作
+- [x] 删除未使用的供应商统计显示
+- [x] 测试修复后的功能

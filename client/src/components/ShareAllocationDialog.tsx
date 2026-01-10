@@ -31,7 +31,6 @@ export default function ShareAllocationDialog({
   onSuccess,
 }: ShareAllocationDialogProps) {
   const [supplierShares, setSupplierShares] = useState<SupplierShare[]>([]);
-  const [showSuggestion, setShowSuggestion] = useState(false);
 
   const { data: suppliers = [] } = trpc.supplier.list.useQuery();
   const { data: existingMappings } = trpc.mapping.getByMaterialCode.useQuery(
@@ -39,13 +38,6 @@ export default function ShareAllocationDialog({
     { enabled: open && !!materialCode }
   );
   
-  // 获取供应商统计信息
-  const supplierStatsQueries = supplierShares.map(share => 
-    trpc.mapping.getSupplierStats.useQuery(
-      { supplierId: share.supplierId },
-      { enabled: share.supplierId > 0 }
-    )
-  );
 
   const utils = trpc.useUtils();
   const upsertMutation = trpc.mapping.upsert.useMutation({
@@ -190,12 +182,7 @@ export default function ShareAllocationDialog({
                       ))}
                     </SelectContent>
                   </Select>
-                  {share.supplierId > 0 && supplierStatsQueries[index]?.data && (
-                    <p className="text-xs text-muted-foreground">
-                      历史供货: {supplierStatsQueries[index].data?.materialCount || 0} 个物料 | 
-                      平均份额: {supplierStatsQueries[index].data?.avgShare || 0}%
-                    </p>
-                  )}
+
                 </div>
 
                 <div className="w-32">
