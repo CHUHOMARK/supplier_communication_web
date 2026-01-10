@@ -482,7 +482,7 @@ export const appRouter = router({
           const materials = supplierMaterialsMap.get(supplier.id);
           if (!materials || materials.length === 0) continue;
           
-          const email = generateSupplierEmail(
+          const email = await generateSupplierEmail(
             supplier,
             materials,
             plan.planStartDate,
@@ -567,6 +567,55 @@ export const appRouter = router({
       }))
       .mutation(async ({ ctx, input }) => {
         const { sendEmail } = await import('./emailService');
+        const { generateSupplierEmail } = await import('./emailGenerator');
+        
+        // 获取计划和供应商信息
+        const plan = await db.getMaterialPlanById(input.planId);
+        if (!plan) {
+          throw new TRPCError({
+            code: 'NOT_FOUND',
+            message: '计划不存在',
+          });
+        }
+        
+        const supplier = await db.getSupplierById(input.supplierId);
+        if (!supplier) {
+          throw new TRPCError({
+            code: 'NOT_FOUND',
+            message: '供应商不存在',
+          });
+        }
+        
+        // 获取该供应商的物料列表
+        const items = await db.getMaterialItemsByPlanId(input.planId);
+        const mappings = await db.getMaterialSupplierMappingsByUserId(ctx.user.id);
+        
+        // 筛选出该供应商的物料
+        const materials = [];
+        for (const mapping of mappings) {
+          if (mapping.supplierId === input.supplierId) {
+            const material = items.find(item => item.materialCode === mapping.materialCode);
+            if (material) {
+              const demand = material.demand ? parseFloat(material.demand) : 0;
+              const sharePercentage = parseFloat(mapping.sharePercentage || "100");
+              const allocatedDemand = Math.round(demand * sharePercentage / 100);
+              
+              materials.push({
+                ...material,
+                allocatedDemand,
+                sharePercentage: mapping.sharePercentage,
+              });
+            }
+          }
+        }
+        
+        // 重新生成邮件内容（包含Excel附件）
+        const emailContent = await generateSupplierEmail(
+          supplier,
+          materials,
+          plan.planStartDate,
+          plan.planEndDate
+        );
         
         // 创建发送记录
         const logId = await db.createEmailSendLog({
@@ -574,16 +623,17 @@ export const appRouter = router({
           planId: input.planId,
           supplierId: input.supplierId,
           recipientEmail: input.recipientEmail,
-          subject: input.subject,
-          content: input.content,
+          subject: emailContent.subject,
+          content: emailContent.body,
           status: "pending",
         });
 
-        // 发送邮件
+        // 发送邮件（带附件）
         const result = await sendEmail({
           to: input.recipientEmail,
-          subject: input.subject,
-          html: input.content,
+          subject: emailContent.subject,
+          html: emailContent.body,
+          attachments: emailContent.attachment ? [emailContent.attachment] : undefined,
         });
 
         // 更新发送状态

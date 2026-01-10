@@ -1,8 +1,14 @@
-import { MaterialItem, Supplier } from "../drizzle/schema";
+import type { MaterialItem, Supplier } from "../drizzle/schema";
+import { generateSupplierPlanExcel } from './excelGenerator';
 
 export interface EmailContent {
   subject: string;
   body: string;
+  attachment?: {
+    filename: string;
+    content: Buffer;
+    contentType: string;
+  };
 }
 
 interface MaterialWithSchedule extends MaterialItem {
@@ -23,13 +29,13 @@ function getDailySchedule(material: MaterialWithSchedule): Record<string, number
 /**
  * 为特定供应商生成邮件内容（表格格式）
  */
-export function generateSupplierEmail(
+export async function generateSupplierEmail(
   supplier: Supplier,
   materials: Array<MaterialWithSchedule>,
   planStartDate: string,
   planEndDate: string,
   companyName: string = "贵司"
-): EmailContent {
+): Promise<EmailContent> {
   const month = planStartDate.split('-')[1];
   
   const subject = `【待处理】${supplier.supplierName} - ${month}月 物料来货计划详情`;
@@ -126,13 +132,29 @@ export function generateSupplierEmail(
     body += '</tbody></table>';
   }
   
-  body += `
+  // 简化邮件正文，不包含表格
+  const simpleBody = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body { font-family: Arial, 'Microsoft YaHei', sans-serif; line-height: 1.6; color: #000; }
+    p { margin: 10px 0; }
+    ol { margin: 10px 0; padding-left: 20px; }
+  </style>
+</head>
+<body>
+  <p>尊敬的 ${supplier.contactPerson || '供应商伙伴'}：</p>
+  <p>您好！</p>
+  <p>根据我司最新的生产安排，现向您发送贵司负责供应的物料来货计划详情。<strong>请查收附件中的Excel表格</strong>，其中包含物料清单及各日期来货数量。</p>
+  <p><strong>计划周期：</strong>${planStartDate} - ${planEndDate}</p>
   <p><strong>重要提示：</strong></p>
   <ol>
     <li>请在24小时内回复邮件确认收到，并告知是否能按计划执行。</li>
     <li>如对计划有任何疑问或无法满足，请在回复中详细说明原因，以便我们及时调整。</li>
     <li>请严格按照计划的到货日期安排发货，避免过早或延迟，以维持我司库存健康水平。</li>
-    <li>表格中各日期列显示的是该日期需要到货的数量，请提前安排生产和物流。</li>
+    <li>附件Excel表格中各日期列显示的是该日期需要到货的数量，请提前安排生产和物流。</li>
   </ol>
   <p>期待您的回复。感谢您的紧密配合！</p>
   <p>顺祝商祺！</p>
@@ -141,8 +163,26 @@ export function generateSupplierEmail(
 </body>
 </html>
 `;
-  
-  return { subject, body };
+
+  // 生成Excel附件
+  const excelBuffer = await generateSupplierPlanExcel(
+    supplier,
+    materials,
+    planStartDate,
+    planEndDate
+  );
+
+  const filename = `${supplier.supplierName}-${month}月物料来货计划.xlsx`;
+
+  return { 
+    subject, 
+    body: simpleBody,
+    attachment: {
+      filename,
+      content: excelBuffer,
+      contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    }
+  };
 }
 
 /**

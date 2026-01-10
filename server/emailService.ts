@@ -21,6 +21,11 @@ interface EmailOptions {
   subject: string;
   text?: string;
   html?: string;
+  attachments?: Array<{
+    filename: string;
+    content: Buffer;
+    contentType?: string;
+  }>;
 }
 
 let transporter: Transporter | null = null;
@@ -89,6 +94,7 @@ export async function sendEmail(options: EmailOptions): Promise<{
       subject: options.subject,
       text: options.text,
       html: options.html,
+      attachments: options.attachments,
     });
 
     return {
