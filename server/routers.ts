@@ -183,7 +183,6 @@ export const appRouter = router({
           const sheet = workbook.Sheets[sheetName];
           const data = XLSX.utils.sheet_to_json(sheet);
 
-          let updatedCount = 0;
           const existingSuppliers = await db.getSuppliersByUserId(ctx.user.id);
           const supplierMap = new Map<string, number>();
           
@@ -191,22 +190,35 @@ export const appRouter = router({
             supplierMap.set(supplier.supplierName.trim(), supplier.id);
           }
 
+          const successList: string[] = [];
+          const failedList: string[] = [];
+          const skippedList: string[] = [];
+
           for (const row of data as any[]) {
             const supplierName = row['供应商名称'] || row['supplierName'] || row['名称'];
             const email = row['邮箱'] || row['email'] || row['Email'];
 
-            if (!supplierName || !email) continue;
+            if (!supplierName || !email) {
+              skippedList.push(`缺少供应商名称或邮箱`);
+              continue;
+            }
 
             const supplierId = supplierMap.get(supplierName.trim());
             if (supplierId) {
               await db.updateSupplier(supplierId, { email: email.trim() });
-              updatedCount++;
+              successList.push(supplierName.trim());
+            } else {
+              failedList.push(supplierName.trim());
             }
           }
 
           return {
             success: true,
-            updatedCount,
+            updatedCount: successList.length,
+            totalCount: data.length,
+            successList,
+            failedList,
+            skippedList,
           };
         } catch (error) {
           throw new TRPCError({

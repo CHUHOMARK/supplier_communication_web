@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,6 +20,7 @@ export default function SupplierManagement({ onMappingComplete }: SupplierManage
   const [uploading, setUploading] = useState(false);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [selectedPlanId, setSelectedPlanId] = useState<number | undefined>(undefined);
+  const emailImportInputRef = useRef<HTMLInputElement>(null);
 
   const [newSupplier, setNewSupplier] = useState({
     supplierName: "",
@@ -146,8 +147,13 @@ export default function SupplierManagement({ onMappingComplete }: SupplierManage
   };
 
   const handleEmailImportFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    console.log('handleEmailImportFileChange called');
     const selectedFile = e.target.files?.[0];
-    if (!selectedFile) return;
+    if (!selectedFile) {
+      console.log('No file selected');
+      return;
+    }
+    console.log('Selected file:', selectedFile.name);
 
     if (!selectedFile.name.endsWith('.xlsx') && !selectedFile.name.endsWith('.xls')) {
       toast.error('请上传Excel文件（.xlsx或.xls格式）');
@@ -161,6 +167,7 @@ export default function SupplierManagement({ onMappingComplete }: SupplierManage
         const fileBase64 = base64.split(',')[1];
 
         try {
+          console.log('Calling importEmails API with fileBase64 length:', fileBase64.length);
           const result = await fetch('/api/trpc/supplier.importEmails', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -168,11 +175,27 @@ export default function SupplierManagement({ onMappingComplete }: SupplierManage
               json: { fileBase64, filename: selectedFile.name }
             })
           }).then(res => res.json());
+          console.log('API response:', result);
 
           if (result.result?.data) {
             const data = result.result.data;
-            toast.success(`邮箱导入成功！更新了 ${data.updatedCount} 个供应商的邮箱`);
-            utils.supplier.list.invalidate();
+            let message = `导入完成！\n总计: ${data.totalCount} 条\n成功: ${data.updatedCount} 个`;
+            
+            if (data.failedList && data.failedList.length > 0) {
+              message += `\n未匹配: ${data.failedList.length} 个`;
+              message += `\n\n未匹配的供应商:\n${data.failedList.join('\n')}`;
+            }
+            
+            if (data.skippedList && data.skippedList.length > 0) {
+              message += `\n跳过: ${data.skippedList.length} 条`;
+            }
+            
+            if (data.updatedCount > 0) {
+              toast.success(message, { duration: 8000 });
+              utils.supplier.list.invalidate();
+            } else {
+              toast.warning(message, { duration: 8000 });
+            }
           } else {
             throw new Error('导入失败');
           }
@@ -269,11 +292,15 @@ export default function SupplierManagement({ onMappingComplete }: SupplierManage
                 批量导入邮箱
               </Button>
               <input
+                ref={emailImportInputRef}
                 id="email-import-file"
                 type="file"
                 accept=".xlsx,.xls"
                 style={{ display: 'none' }}
-                onChange={handleEmailImportFileChange}
+                onChange={(e) => {
+                  console.log('[onChange] Event triggered!', e.target.files);
+                  handleEmailImportFileChange(e);
+                }}
               />
               <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
                 <DialogTrigger asChild>
