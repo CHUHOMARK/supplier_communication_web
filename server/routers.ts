@@ -157,6 +157,17 @@ export const appRouter = router({
         return { success: true };
       }),
     
+    // 下载邮箱导入模板
+    downloadEmailTemplate: protectedProcedure
+      .query(async () => {
+        const { generateEmailImportTemplate } = await import('./templateGenerator');
+        const buffer = generateEmailImportTemplate();
+        return {
+          fileBase64: buffer.toString('base64'),
+          filename: '供应商邮箱导入模板.xlsx'
+        };
+      }),
+
     // 批量导入供应商邮箱
     importEmails: protectedProcedure
       .input(z.object({

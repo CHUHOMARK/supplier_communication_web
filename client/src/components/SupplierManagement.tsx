@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Users, Plus, Upload, CheckCircle, AlertCircle, Trash2 } from "lucide-react";
+import { Users, Plus, Upload, Download, CheckCircle, AlertCircle, Trash2 } from "lucide-react";
 import PurchaseOrderImport from "@/components/PurchaseOrderImport";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
@@ -114,6 +114,35 @@ export default function SupplierManagement({ onMappingComplete }: SupplierManage
     }
 
     createSupplierMutation.mutate(newSupplier);
+  };
+
+  const handleDownloadEmailTemplate = async () => {
+    try {
+      const result = await utils.supplier.downloadEmailTemplate.fetch();
+      
+      // 将Base64转换为Blob
+      const byteCharacters = atob(result.fileBase64);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      
+      // 创建下载链接
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = result.filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      toast.success('模板下载成功');
+    } catch (error: any) {
+      toast.error(`下载失败：${error.message}`);
+    }
   };
 
   const handleEmailImportFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -231,6 +260,10 @@ export default function SupplierManagement({ onMappingComplete }: SupplierManage
               <CardTitle>供应商列表</CardTitle>
             </div>
             <div className="flex gap-2">
+              <Button size="sm" variant="outline" onClick={handleDownloadEmailTemplate}>
+                <Download className="h-4 w-4 mr-2" />
+                下载模板
+              </Button>
               <Button size="sm" onClick={() => document.getElementById('email-import-file')?.click()}>
                 <Upload className="h-4 w-4 mr-2" />
                 批量导入邮箱
