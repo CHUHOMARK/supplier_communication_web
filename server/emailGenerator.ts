@@ -34,16 +34,25 @@ export function generateSupplierEmail(
   
   const subject = `【待处理】${supplier.supplierName} - ${month}月 物料来货计划详情`;
   
-  let body = `尊敬的 ${supplier.contactPerson || '供应商伙伴'}：
-
-您好！
-
-根据我司最新的生产安排，现向您发送贵司负责供应的物料来货计划详情。请查收下方物料清单及各日期来货数量。
-
-**计划周期：** ${planStartDate} - ${planEndDate}
-
-**物料来货计划表：**
-
+  let body = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body { font-family: Arial, 'Microsoft YaHei', sans-serif; line-height: 1.6; color: #000; }
+    table { width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 12px; }
+    th { background-color: #fff; color: #000; padding: 8px; text-align: left; font-weight: bold; border: 1px solid #000; }
+    td { padding: 8px; border: 1px solid #000; background-color: #fff; }
+    .number { text-align: right; }
+  </style>
+</head>
+<body>
+  <p>尊敬的 ${supplier.contactPerson || '供应商伙伴'}：</p>
+  <p>您好！</p>
+  <p>根据我司最新的生产安排，现向您发送贵司负责供应的物料来货计划详情。请查收下方物料清单及各日期来货数量。</p>
+  <p><strong>计划周期：</strong>${planStartDate} - ${planEndDate}</p>
+  <p><strong>物料来货计划表：</strong></p>
 `;
   
   // 收集所有日期
@@ -55,78 +64,82 @@ export function generateSupplierEmail(
   
   const sortedDates = Array.from(allDates).sort();
   
-  // 如果有日期数据，生成按日期的表格
+  // 如果有日期数据，生成按日期的HTML表格
   if (sortedDates.length > 0) {
+    body += '<table>';
+    
     // 表头
-    body += '| 物料料号 | 物料名称 | 规格 | 当前库存 | 缺口 |';
+    body += '<thead><tr>';
+    body += '<th>物料料号</th><th>物料名称</th><th class="number">当前库存</th><th class="number">缺口</th>';
     sortedDates.forEach(date => {
       const formattedDate = formatDateShort(date);
-      body += ` ${formattedDate} |`;
+      body += `<th class="number">${formattedDate}</th>`;
     });
-    body += ' **合计** | 份额 |\n';
-    
-    // 分隔线
-    body += '| :--- | :--- | :--- | ---: | ---: |';
-    sortedDates.forEach(() => {
-      body += ' ---: |';
-    });
-    body += ' ---: | ---: |\n';
+    body += '</tr></thead>';
     
     // 数据行
+    body += '<tbody>';
     for (const material of materials) {
-      const spec = material.materialSpec || '-';
       const inventory = material.inventory ? Number(material.inventory).toFixed(0) : '0';
       const shortage = material.shortage ? Number(material.shortage).toFixed(0) : '0';
-      const sharePercentage = material.sharePercentage ? `${parseFloat(material.sharePercentage).toFixed(1)}%` : '100%';
       const schedule = getDailySchedule(material);
       
-      body += `| ${material.materialCode} | ${material.materialName} | ${spec} | ${inventory} | ${shortage} |`;
+      body += '<tr>';
+      body += `<td>${material.materialCode}</td>`;
+      body += `<td>${material.materialName}</td>`;
+      body += `<td class="number">${inventory}</td>`;
+      body += `<td class="number">${shortage}</td>`;
       
-      let rowTotal = 0;
       sortedDates.forEach(date => {
         const qty = schedule[date] || 0;
         // 按份额分配
         const allocatedQty = material.sharePercentage 
           ? qty * (parseFloat(material.sharePercentage) / 100)
           : qty;
-        rowTotal += allocatedQty;
-        body += ` ${allocatedQty > 0 ? allocatedQty.toFixed(0) : '-'} |`;
+        body += `<td class="number">${allocatedQty > 0 ? allocatedQty.toFixed(0) : ''}</td>`;
       });
       
-      body += ` **${rowTotal.toFixed(0)}** | ${sharePercentage} |\n`;
+      body += '</tr>';
     }
+    body += '</tbody></table>'
   } else {
-    // 如果没有日期数据，使用原来的简化表格
-    body += '| 物料料号 | 物料名称 | 规格 | 需求总量 | 分配数量 | 份额 | 当前库存 | 缺口数量 |\n';
-    body += '| :--- | :--- | :--- | ---: | ---: | ---: | ---: | ---: |\n';
+    // 如果没有日期数据，使用简化的HTML表格
+    body += '<table>';
+    body += '<thead><tr>';
+    body += '<th>物料料号</th><th>物料名称</th><th class="number">需求总量</th><th class="number">当前库存</th><th class="number">缺口数量</th>';
+    body += '</tr></thead>';
     
+    body += '<tbody>';
     for (const material of materials) {
-      const spec = material.materialSpec || '-';
       const totalDemand = material.demand ? Number(material.demand).toFixed(0) : '0';
-      const allocatedDemand = material.allocatedDemand !== undefined ? material.allocatedDemand.toFixed(0) : totalDemand;
-      const sharePercentage = material.sharePercentage ? `${parseFloat(material.sharePercentage).toFixed(1)}%` : '100%';
       const inventory = material.inventory ? Number(material.inventory).toFixed(0) : '0';
       const shortage = material.shortage ? Number(material.shortage).toFixed(0) : '0';
       
-      body += `| ${material.materialCode} | ${material.materialName} | ${spec} | ${totalDemand} | **${allocatedDemand}** | ${sharePercentage} | ${inventory} | ${shortage} |\n`;
+      body += '<tr>';
+      body += `<td>${material.materialCode}</td>`;
+      body += `<td>${material.materialName}</td>`;
+      body += `<td class="number">${totalDemand}</td>`;
+      body += `<td class="number">${inventory}</td>`;
+      body += `<td class="number">${shortage}</td>`;
+      body += '</tr>';
     }
+    body += '</tbody></table>';
   }
   
   body += `
-
-**重要提示：**
-
-1. 请在24小时内回复邮件确认收到，并告知是否能按计划执行。
-2. 如对计划有任何疑问或无法满足，请在回复中详细说明原因，以便我们及时调整。
-3. 请严格按照计划的到货日期安排发货，避免过早或延迟，以维持我司库存健康水平。
-4. 表格中各日期列显示的是该日期需要到货的数量，请提前安排生产和物流。
-
-期待您的回复。感谢您的紧密配合！
-
-顺祝商祺！
-
-${companyName}
-${new Date().toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })}
+  <p><strong>重要提示：</strong></p>
+  <ol>
+    <li>请在24小时内回复邮件确认收到，并告知是否能按计划执行。</li>
+    <li>如对计划有任何疑问或无法满足，请在回复中详细说明原因，以便我们及时调整。</li>
+    <li>请严格按照计划的到货日期安排发货，避免过早或延迟，以维持我司库存健康水平。</li>
+    <li>表格中各日期列显示的是该日期需要到货的数量，请提前安排生产和物流。</li>
+  </ol>
+  <p>期待您的回复。感谢您的紧密配合！</p>
+  <p>顺祝商祺！</p>
+  <p>${companyName}<br>
+  ${new Date().toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+</body>
+</html>
 `;
   
   return { subject, body };
