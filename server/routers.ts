@@ -157,6 +157,54 @@ export const appRouter = router({
         return { success: true };
       }),
     
+    // 批量导入供应商邮箱
+    importEmails: protectedProcedure
+      .input(z.object({
+        fileBase64: z.string(),
+        filename: z.string(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        try {
+          const buffer = Buffer.from(input.fileBase64, 'base64');
+          const XLSX = require('xlsx');
+          const workbook = XLSX.read(buffer, { type: 'buffer' });
+          const sheetName = workbook.SheetNames[0];
+          const sheet = workbook.Sheets[sheetName];
+          const data = XLSX.utils.sheet_to_json(sheet);
+
+          let updatedCount = 0;
+          const existingSuppliers = await db.getSuppliersByUserId(ctx.user.id);
+          const supplierMap = new Map<string, number>();
+          
+          for (const supplier of existingSuppliers) {
+            supplierMap.set(supplier.supplierName.trim(), supplier.id);
+          }
+
+          for (const row of data as any[]) {
+            const supplierName = row['供应商名称'] || row['supplierName'] || row['名称'];
+            const email = row['邮箱'] || row['email'] || row['Email'];
+
+            if (!supplierName || !email) continue;
+
+            const supplierId = supplierMap.get(supplierName.trim());
+            if (supplierId) {
+              await db.updateSupplier(supplierId, { email: email.trim() });
+              updatedCount++;
+            }
+          }
+
+          return {
+            success: true,
+            updatedCount,
+          };
+        } catch (error) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: error instanceof Error ? error.message : '文件解析失败',
+          });
+        }
+      }),
+
     // 上传供应商映射表
     uploadMapping: protectedProcedure
       .input(z.object({

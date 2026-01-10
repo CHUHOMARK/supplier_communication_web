@@ -288,7 +288,7 @@ export default function EmailGeneration() {
       )}
 
       <Dialog open={previewDialogOpen} onOpenChange={setPreviewDialogOpen}>
-        <DialogContent className="max-w-[98vw] w-full max-h-[98vh] overflow-hidden flex flex-col">
+        <DialogContent className="w-screen h-screen max-w-none overflow-hidden flex flex-col rounded-none">
           <DialogHeader>
             <DialogTitle>邮件预览与编辑</DialogTitle>
             <DialogDescription>查看和编辑邮件内容，修改后可复制使用</DialogDescription>

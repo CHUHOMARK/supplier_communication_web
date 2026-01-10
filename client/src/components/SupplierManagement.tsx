@@ -116,6 +116,50 @@ export default function SupplierManagement({ onMappingComplete }: SupplierManage
     createSupplierMutation.mutate(newSupplier);
   };
 
+  const handleEmailImportFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = e.target.files?.[0];
+    if (!selectedFile) return;
+
+    if (!selectedFile.name.endsWith('.xlsx') && !selectedFile.name.endsWith('.xls')) {
+      toast.error('请上传Excel文件（.xlsx或.xls格式）');
+      return;
+    }
+
+    try {
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        const base64 = event.target?.result as string;
+        const fileBase64 = base64.split(',')[1];
+
+        try {
+          const result = await fetch('/api/trpc/supplier.importEmails', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              json: { fileBase64, filename: selectedFile.name }
+            })
+          }).then(res => res.json());
+
+          if (result.result?.data) {
+            const data = result.result.data;
+            toast.success(`邮箱导入成功！更新了 ${data.updatedCount} 个供应商的邮箱`);
+            utils.supplier.list.invalidate();
+          } else {
+            throw new Error('导入失败');
+          }
+        } catch (error: any) {
+          toast.error(`导入失败：${error.message}`);
+        }
+      };
+      reader.readAsDataURL(selectedFile);
+    } catch (error: any) {
+      toast.error(`文件读取失败：${error.message}`);
+    }
+
+    // 清空文件输入，允许重复选择同一文件
+    e.target.value = '';
+  };
+
   const handleDeleteSupplier = (id: number, name: string) => {
     if (confirm(`确定要删除供应商"${name}"吗？这将同时删除相关的映射关系。`)) {
       deleteSupplierMutation.mutate({ id });
@@ -186,13 +230,25 @@ export default function SupplierManagement({ onMappingComplete }: SupplierManage
               <Users className="h-5 w-5" />
               <CardTitle>供应商列表</CardTitle>
             </div>
-            <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
-              <DialogTrigger asChild>
-                <Button size="sm">
-                  <Plus className="h-4 w-4 mr-2" />
-                  添加供应商
-                </Button>
-              </DialogTrigger>
+            <div className="flex gap-2">
+              <Button size="sm" onClick={() => document.getElementById('email-import-file')?.click()}>
+                <Upload className="h-4 w-4 mr-2" />
+                批量导入邮箱
+              </Button>
+              <input
+                id="email-import-file"
+                type="file"
+                accept=".xlsx,.xls"
+                style={{ display: 'none' }}
+                onChange={handleEmailImportFileChange}
+              />
+              <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button size="sm">
+                    <Plus className="h-4 w-4 mr-2" />
+                    添加供应商
+                  </Button>
+                </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
                   <DialogTitle>添加新供应商</DialogTitle>
@@ -243,6 +299,7 @@ export default function SupplierManagement({ onMappingComplete }: SupplierManage
                 </DialogFooter>
               </DialogContent>
             </Dialog>
+            </div>
           </div>
           <CardDescription>管理您的供应商信息</CardDescription>
         </CardHeader>
