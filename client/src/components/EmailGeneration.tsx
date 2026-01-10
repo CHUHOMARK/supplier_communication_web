@@ -248,7 +248,7 @@ export default function EmailGeneration() {
                         size="sm"
                         onClick={() => {
                           if (!email.supplier?.email) {
-                            toast.error('该供应商未设置邮箱');
+                            toast.error('该供应商未设置邮箱，请先在供应商管理页面添加邮箱');
                             return;
                           }
                         // 发送邮件
@@ -268,9 +268,10 @@ export default function EmailGeneration() {
                         });
                         }}
                         disabled={!email.supplier?.email || sendEmailMutation.isPending}
+                        title={!email.supplier?.email ? '该供应商未设置邮箱' : ''}
                       >
                         <Mail className="h-4 w-4 mr-2" />
-                        发送
+                        {!email.supplier?.email ? '未设置邮箱' : '发送'}
                       </Button>
                     </div>
                   </div>
@@ -287,7 +288,7 @@ export default function EmailGeneration() {
       )}
 
       <Dialog open={previewDialogOpen} onOpenChange={setPreviewDialogOpen}>
-        <DialogContent className="max-w-[90vw] w-full max-h-[90vh] overflow-hidden flex flex-col">
+        <DialogContent className="max-w-[98vw] w-full max-h-[98vh] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle>邮件预览与编辑</DialogTitle>
             <DialogDescription>查看和编辑邮件内容，修改后可复制使用</DialogDescription>
