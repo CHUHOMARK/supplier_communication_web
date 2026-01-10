@@ -1,4 +1,4 @@
-import { eq, and } from "drizzle-orm";
+import { eq, and, desc } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { 
   InsertUser, 
@@ -7,6 +7,7 @@ import {
   materialItems,
   suppliers,
   materialSupplierMappings,
+  shareChangeHistory,
   generatedEmails,
   InsertMaterialPlan,
   InsertMaterialItem,
@@ -246,4 +247,81 @@ export async function deleteGeneratedEmailsByPlanId(planId: number) {
   if (!db) throw new Error("Database not available");
   
   await db.delete(generatedEmails).where(eq(generatedEmails.planId, planId));
+}
+
+// Share Change History
+/**
+ * 记录份额变更历史
+ */
+export async function recordShareChange(
+  userId: number,
+  materialCode: string,
+  supplierId: number,
+  oldShare: string | null,
+  newShare: string,
+  reason?: string
+) {
+  const db = await getDb();
+  if (!db) return;
+
+  await db.insert(shareChangeHistory).values({
+    userId,
+    materialCode,
+    supplierId,
+    oldSharePercentage: oldShare,
+    newSharePercentage: newShare,
+    changeReason: reason,
+  });
+}
+
+/**
+ * 获取供应商历史采购统计
+ */
+export async function getSupplierPurchaseStats(userId: number, supplierId: number) {
+  const db = await getDb();
+  if (!db) return null;
+
+  // 查询该供应商的所有映射关系
+  const mappings = await db
+    .select()
+    .from(materialSupplierMappings)
+    .where(
+      and(
+        eq(materialSupplierMappings.userId, userId),
+        eq(materialSupplierMappings.supplierId, supplierId)
+      )
+    );
+
+  const materialCount = mappings.length;
+  const avgShare = materialCount > 0
+    ? mappings.reduce((sum, m) => sum + parseFloat(m.sharePercentage || "0"), 0) / materialCount
+    : 0;
+
+  return {
+    materialCount,
+    avgShare: avgShare.toFixed(2),
+    lastUpdated: mappings.length > 0
+      ? mappings.reduce((latest, m) => m.updatedAt > latest ? m.updatedAt : latest, mappings[0].updatedAt)
+      : null,
+  };
+}
+
+/**
+ * 获取份额变更历史
+ */
+export async function getShareChangeHistory(userId: number, materialCode?: string) {
+  const db = await getDb();
+  if (!db) return [];
+
+  const conditions = [eq(shareChangeHistory.userId, userId)];
+  if (materialCode) {
+    conditions.push(eq(shareChangeHistory.materialCode, materialCode));
+  }
+
+  return await db
+    .select()
+    .from(shareChangeHistory)
+    .where(and(...conditions))
+    .orderBy(desc(shareChangeHistory.changedAt))
+    .limit(100);
 }

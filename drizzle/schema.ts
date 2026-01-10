@@ -98,6 +98,23 @@ export type MaterialSupplierMapping = typeof materialSupplierMappings.$inferSele
 export type InsertMaterialSupplierMapping = typeof materialSupplierMappings.$inferInsert;
 
 /**
+ * 份额变更历史记录表
+ */
+export const shareChangeHistory = mysqlTable("share_change_history", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  materialCode: varchar("materialCode", { length: 100 }).notNull(),
+  supplierId: int("supplierId").notNull(),
+  oldSharePercentage: decimal("oldSharePercentage", { precision: 5, scale: 2 }),
+  newSharePercentage: decimal("newSharePercentage", { precision: 5, scale: 2 }).notNull(),
+  changeReason: text("changeReason"),
+  changedAt: timestamp("changedAt").defaultNow().notNull(),
+});
+
+export type ShareChangeHistory = typeof shareChangeHistory.$inferSelect;
+export type InsertShareChangeHistory = typeof shareChangeHistory.$inferInsert;
+
+/**
  * 生成的邮件记录表
  */
 export const generatedEmails = mysqlTable("generated_emails", {

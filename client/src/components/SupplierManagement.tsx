@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Users, Plus, Upload, CheckCircle, AlertCircle, Trash2, Edit, Percent } from "lucide-react";
 import ShareAllocationDialog from "@/components/ShareAllocationDialog";
+import BatchShareAllocation from "@/components/BatchShareAllocation";
 import PurchaseOrderImport from "@/components/PurchaseOrderImport";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
@@ -20,6 +21,7 @@ export default function SupplierManagement({ onMappingComplete }: SupplierManage
   const [uploading, setUploading] = useState(false);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
+  const [batchDialogOpen, setBatchDialogOpen] = useState(false);
   const [selectedMaterial, setSelectedMaterial] = useState<{ code: string; name: string } | null>(null);
   const [newSupplier, setNewSupplier] = useState({
     supplierName: "",
@@ -122,6 +124,22 @@ export default function SupplierManagement({ onMappingComplete }: SupplierManage
   const handleEditShare = (materialCode: string, materialName: string) => {
     setSelectedMaterial({ code: materialCode, name: materialName });
     setShareDialogOpen(true);
+  };
+  
+  const deleteMappingMutation = trpc.mapping.delete.useMutation({
+    onSuccess: () => {
+      toast.success('映射关系已删除');
+      utils.mapping.list.invalidate();
+    },
+    onError: (error) => {
+      toast.error(`删除失败：${error.message}`);
+    },
+  });
+  
+  const handleDeleteMapping = (materialCode: string, materialName: string) => {
+    if (confirm(`确定要删除物料"${materialCode}${materialName ? ` - ${materialName}` : ''}"的所有供应商映射吗？`)) {
+      deleteMappingMutation.mutate({ materialCode });
+    }
   };
 
   // 按物料分组映射关系，并统计供应商数量
@@ -318,9 +336,14 @@ export default function SupplierManagement({ onMappingComplete }: SupplierManage
       {multiSupplierMaterials.length > 0 && (
         <Card>
           <CardHeader>
-            <div className="flex items-center gap-2">
-              <Percent className="h-5 w-5" />
-              <CardTitle>物料份额分配</CardTitle>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Percent className="h-5 w-5" />
+                <CardTitle>物料份额分配</CardTitle>
+              </div>
+              <Button size="sm" onClick={() => setBatchDialogOpen(true)}>
+                批量配置
+              </Button>
             </div>
             <CardDescription>
               为有多个供应商的物料配置份额及优先级
@@ -339,7 +362,7 @@ export default function SupplierManagement({ onMappingComplete }: SupplierManage
                       <TableHead>物料料号</TableHead>
                       <TableHead>物料名称</TableHead>
                       <TableHead>供应商数量</TableHead>
-                      <TableHead className="text-right">操作</TableHead>
+                      <TableHead className="text-right" style={{width: '200px'}}>操作</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -349,14 +372,23 @@ export default function SupplierManagement({ onMappingComplete }: SupplierManage
                         <TableCell>{group.materialName}</TableCell>
                         <TableCell>{group.suppliers.length} 家</TableCell>
                         <TableCell className="text-right">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleEditShare(group.materialCode, group.materialName)}
-                          >
-                            <Edit className="h-4 w-4 mr-2" />
-                            编辑份额
-                          </Button>
+                          <div className="flex gap-2 justify-end">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleEditShare(group.materialCode, group.materialName)}
+                            >
+                              <Edit className="h-4 w-4 mr-2" />
+                              编辑
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleDeleteMapping(group.materialCode, group.materialName)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -381,6 +413,17 @@ export default function SupplierManagement({ onMappingComplete }: SupplierManage
           }}
         />
       )}
+      
+      {/* 批量份额分配弹窗 */}
+      <BatchShareAllocation
+        open={batchDialogOpen}
+        onOpenChange={setBatchDialogOpen}
+        materials={multiSupplierMaterials.map(g => ({ code: g.materialCode, name: g.materialName }))}
+        onSuccess={() => {
+          utils.mapping.list.invalidate();
+          toast.success('批量份额分配已完成');
+        }}
+      />
     </div>
   );
 }

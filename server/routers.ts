@@ -251,24 +251,77 @@ export const appRouter = router({
           });
         }
         
+        // 获取旧映射用于记录历史
+        const oldMappings = await db.getMaterialSupplierMappingsByMaterialCode(ctx.user.id, input.materialCode);
+        const oldMappingMap = new Map(oldMappings.map(m => [m.supplierId, m.sharePercentage]));
+        
         // 删除旧映射
         await db.deleteMaterialSupplierMappingsByMaterialCode(ctx.user.id, input.materialCode);
         
-        // 创建新映射
+        // 创建新映射并记录历史
         const mappingIds = [];
         for (let i = 0; i < input.suppliers.length; i++) {
           const supplier = input.suppliers[i];
+          const newShare = supplier.sharePercentage.toFixed(2);
+          const oldShare = oldMappingMap.get(supplier.supplierId);
+          
+          // 记录份额变更
+          if (oldShare !== newShare) {
+            await db.recordShareChange(
+              ctx.user.id,
+              input.materialCode,
+              supplier.supplierId,
+              oldShare || null,
+              newShare
+            );
+          }
+          
           const mappingId = await db.createMaterialSupplierMapping({
             userId: ctx.user.id,
             materialCode: input.materialCode,
             supplierId: supplier.supplierId,
-            sharePercentage: supplier.sharePercentage.toFixed(2),
+            sharePercentage: newShare,
             priority: supplier.priority || (i + 1),
           });
           mappingIds.push(Number(mappingId));
         }
         
         return { mappingIds };
+      }),
+    
+    // 删除映射
+    delete: protectedProcedure
+      .input(z.object({ 
+        materialCode: z.string(),
+        supplierId: z.number().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        if (input.supplierId) {
+          // 删除特定供应商的映射
+          const mappings = await db.getMaterialSupplierMappingsByMaterialCode(ctx.user.id, input.materialCode);
+          const targetMapping = mappings.find(m => m.supplierId === input.supplierId);
+          if (targetMapping) {
+            await db.deleteMaterialSupplierMapping(targetMapping.id);
+          }
+        } else {
+          // 删除所有映射
+          await db.deleteMaterialSupplierMappingsByMaterialCode(ctx.user.id, input.materialCode);
+        }
+        return { success: true };
+      }),
+    
+    // 获取供应商统计信息
+    getSupplierStats: protectedProcedure
+      .input(z.object({ supplierId: z.number() }))
+      .query(async ({ ctx, input }) => {
+        return await db.getSupplierPurchaseStats(ctx.user.id, input.supplierId);
+      }),
+    
+    // 获取份额变更历史
+    getChangeHistory: protectedProcedure
+      .input(z.object({ materialCode: z.string().optional() }))
+      .query(async ({ ctx, input }) => {
+        return await db.getShareChangeHistory(ctx.user.id, input.materialCode);
       }),
     
     // 获取特定物料的映射
@@ -284,14 +337,6 @@ export const appRouter = router({
           ...m,
           supplier: supplierMap.get(m.supplierId),
         }));
-      }),
-    
-    // 删除映射
-    delete: protectedProcedure
-      .input(z.object({ materialCode: z.string() }))
-      .mutation(async ({ ctx, input }) => {
-        await db.deleteMaterialSupplierMappingsByMaterialCode(ctx.user.id, input.materialCode);
-        return { success: true };
       }),
   }),
 
