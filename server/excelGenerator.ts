@@ -9,6 +9,7 @@ interface MaterialSchedule {
   sharePercentage?: string | null;
   demand?: string | number | null;
   allocatedDemand?: number;
+  dailySchedule?: Record<string, number> | null;
   [key: string]: any; // 用于日期字段
 }
 
@@ -30,9 +31,18 @@ export async function generateSupplierPlanExcel(
   const workbook = new ExcelJS.Workbook();
   const worksheet = workbook.addWorksheet('物料来货计划');
 
-  // 收集所有日期列
+  // 收集所有日期列（从dailySchedule中提取）
   const allDates = new Set<string>();
   for (const material of materials) {
+    // 从 dailySchedule 字段中提取日期
+    if (material.dailySchedule && typeof material.dailySchedule === 'object') {
+      for (const date of Object.keys(material.dailySchedule)) {
+        if (date.match(/^\d{4}-\d{2}-\d{2}$/)) {
+          allDates.add(date);
+        }
+      }
+    }
+    // 也检查直接在material对象上的日期字段
     for (const key of Object.keys(material)) {
       if (key.match(/^\d{4}-\d{2}-\d{2}$/)) {
         allDates.add(key);
@@ -122,12 +132,19 @@ export async function generateSupplierPlanExcel(
 
     // 添加日期列数据
     for (const date of sortedDates) {
-      const qty = material[date] || 0;
+      // 从dailySchedule或直接字段中获取数量
+      let qty = 0;
+      if (material.dailySchedule && typeof material.dailySchedule === 'object') {
+        qty = material.dailySchedule[date] || 0;
+      } else if (material[date]) {
+        qty = Number(material[date]) || 0;
+      }
+      
       // 按份额分配
       const allocatedQty = material.sharePercentage 
         ? qty * (parseFloat(material.sharePercentage) / 100)
         : qty;
-      rowData.push(allocatedQty > 0 ? allocatedQty.toFixed(0) : '');
+      rowData.push(allocatedQty > 0 ? Math.round(allocatedQty).toString() : '');
     }
 
     row.values = rowData;

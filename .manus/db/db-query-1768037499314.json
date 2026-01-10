@@ -1,0 +1,50 @@
+{
+  "query": "SELECT id, confirmToken, status, expiresAt, planId, supplierId FROM supplier_confirmations ORDER BY createdAt DESC LIMIT 5;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway03.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2oD5Rpux9cjqHPq.05f21cb26eb8 --database ZuNBVd6CLssbosJUyd9j6x --execute SELECT id, confirmToken, status, expiresAt, planId, supplierId FROM supplier_confirmations ORDER BY createdAt DESC LIMIT 5;",
+  "rows": [
+    {
+      "id": "10",
+      "confirmToken": "pC6ECABe3KIZu9tsVEGwYScIGzq553jb",
+      "status": "pending",
+      "expiresAt": "2026-02-09 09:26:40",
+      "planId": "5",
+      "supplierId": "553"
+    },
+    {
+      "id": "9",
+      "confirmToken": "XD4saJJt-7etKcR6yBwOjHpG0UzjHrsd",
+      "status": "pending",
+      "expiresAt": "2026-02-09 09:18:00",
+      "planId": "5",
+      "supplierId": "553"
+    },
+    {
+      "id": "8",
+      "confirmToken": "3ryjrTU-ndKIwcL0mgiZCdPNgI5E2iVn",
+      "status": "pending",
+      "expiresAt": "2026-02-09 09:06:41",
+      "planId": "5",
+      "supplierId": "553"
+    },
+    {
+      "id": "7",
+      "confirmToken": "cXpWzPNL26POLfK6yog8DQf8_nvUePxq",
+      "status": "pending",
+      "expiresAt": "2026-02-09 09:06:26",
+      "planId": "5",
+      "supplierId": "553"
+    },
+    {
+      "id": "6",
+      "confirmToken": "eNHv5TX7WSvBaqDSwMq2nbF6xZ2-x5_F",
+      "status": "pending",
+      "expiresAt": "2026-02-09 08:58:10",
+      "planId": "5",
+      "supplierId": "553"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tconfirmToken\tstatus\texpiresAt\tplanId\tsupplierId\n10\tpC6ECABe3KIZu9tsVEGwYScIGzq553jb\tpending\t2026-02-09 09:26:40\t5\t553\n9\tXD4saJJt-7etKcR6yBwOjHpG0UzjHrsd\tpending\t2026-02-09 09:18:00\t5\t553\n8\t3ryjrTU-ndKIwcL0mgiZCdPNgI5E2iVn\tpending\t2026-02-09 09:06:41\t5\t553\n7\tcXpWzPNL26POLfK6yog8DQf8_nvUePxq\tpending\t2026-02-09 09:06:26\t5\t553\n6\teNHv5TX7WSvBaqDSwMq2nbF6xZ2-x5_F\tpending\t2026-02-09 08:58:10\t5\t553\n",
+  "stderr": "",
+  "execution_time_ms": 1560
+}
