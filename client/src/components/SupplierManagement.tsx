@@ -21,6 +21,8 @@ export default function SupplierManagement({ onMappingComplete }: SupplierManage
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [selectedPlanId, setSelectedPlanId] = useState<number | undefined>(undefined);
   const emailImportInputRef = useRef<HTMLInputElement>(null);
+  const [editingEmailId, setEditingEmailId] = useState<number | null>(null);
+  const [editingEmailValue, setEditingEmailValue] = useState("");
 
   const [newSupplier, setNewSupplier] = useState({
     supplierName: "",
@@ -73,6 +75,36 @@ export default function SupplierManagement({ onMappingComplete }: SupplierManage
       toast.error(`删除失败：${error.message}`);
     },
   });
+
+  const updateSupplierEmailMutation = trpc.supplier.updateEmail.useMutation({
+    onSuccess: () => {
+      toast.success('邮箱更新成功');
+      setEditingEmailId(null);
+      setEditingEmailValue("");
+      utils.supplier.list.invalidate();
+    },
+    onError: (error: any) => {
+      toast.error(`更新失败：${error.message}`);
+    },
+  });
+
+  const handleStartEditEmail = (supplierId: number, currentEmail: string) => {
+    setEditingEmailId(supplierId);
+    setEditingEmailValue(currentEmail || "");
+  };
+
+  const handleSaveEmail = (supplierId: number) => {
+    if (!editingEmailValue.trim()) {
+      toast.error('邮箱不能为空');
+      return;
+    }
+    updateSupplierEmailMutation.mutate({ id: supplierId, email: editingEmailValue });
+  };
+
+  const handleCancelEditEmail = () => {
+    setEditingEmailId(null);
+    setEditingEmailValue("");
+  };
 
   const handleMappingFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -408,7 +440,40 @@ export default function SupplierManagement({ onMappingComplete }: SupplierManage
                     <TableRow key={supplier.id}>
                       <TableCell className="font-medium">{supplier.supplierName}</TableCell>
                       <TableCell>{supplier.contactPerson || '-'}</TableCell>
-                      <TableCell>{supplier.email || '-'}</TableCell>
+                      <TableCell>
+                        {editingEmailId === supplier.id ? (
+                          <div className="flex items-center gap-2">
+                            <Input
+                              type="email"
+                              value={editingEmailValue}
+                              onChange={(e) => setEditingEmailValue(e.target.value)}
+                              className="h-8"
+                              placeholder="请输入邮箱"
+                            />
+                            <Button
+                              size="sm"
+                              onClick={() => handleSaveEmail(supplier.id)}
+                              disabled={updateSupplierEmailMutation.isPending}
+                            >
+                              保存
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={handleCancelEditEmail}
+                            >
+                              取消
+                            </Button>
+                          </div>
+                        ) : (
+                          <div 
+                            className="cursor-pointer hover:text-primary"
+                            onClick={() => handleStartEditEmail(supplier.id, supplier.email || '')}
+                          >
+                            {supplier.email || '点击添加邮箱'}
+                          </div>
+                        )}
+                      </TableCell>
                       <TableCell>{supplier.phone || '-'}</TableCell>
                       <TableCell className="text-right">
                         <Button

@@ -157,6 +157,17 @@ export const appRouter = router({
         return { success: true };
       }),
     
+    // 更新供应商邮箱
+    updateEmail: protectedProcedure
+      .input(z.object({ 
+        id: z.number(),
+        email: z.string().email('请输入有效的邮箱地址'),
+      }))
+      .mutation(async ({ input }) => {
+        await db.updateSupplierEmail(input.id, input.email);
+        return { success: true };
+      }),
+    
     // 下载邮箱导入模板
     downloadEmailTemplate: protectedProcedure
       .query(async () => {

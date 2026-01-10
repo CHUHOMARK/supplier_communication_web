@@ -175,6 +175,13 @@ export async function deleteSupplier(id: number) {
   await db.delete(suppliers).where(eq(suppliers.id, id));
 }
 
+export async function updateSupplierEmail(id: number, email: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  await db.update(suppliers).set({ email }).where(eq(suppliers.id, id));
+}
+
 // Material Supplier Mappings
 export async function createMaterialSupplierMapping(mapping: InsertMaterialSupplierMapping) {
   const db = await getDb();
