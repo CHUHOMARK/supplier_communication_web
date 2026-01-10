@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Users, Plus, Upload, CheckCircle, AlertCircle, Trash2, Edit, Percent } from "lucide-react";
 import ShareAllocationDialog from "@/components/ShareAllocationDialog";
+import PurchaseOrderImport from "@/components/PurchaseOrderImport";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 
@@ -364,6 +365,13 @@ export default function SupplierManagement({ onMappingComplete }: SupplierManage
           }}
         />
       )}
+
+      <PurchaseOrderImport
+        onImportComplete={() => {
+          utils.supplier.list.invalidate();
+          utils.mapping.list.invalidate();
+        }}
+      />
     </div>
   );
 }

@@ -220,7 +220,111 @@ export const appRouter = router({
   mapping: router({
     // 获取所有映射
     list: protectedProcedure.query(async ({ ctx }) => {
-      const mappings = await db.getMaterialSupplierMappingsByUserId(ctx.user.id);
+      const mappings = await  // Purchase Order Import
+  purchaseOrder: router({
+    // 解析采购订单并计算份额
+    parseAndCalculate: protectedProcedure
+      .input(z.object({
+        fileContent: z.string(), // base64 encoded
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const { parsePurchaseOrderExcel, calculateSupplierShares, extractUniqueSuppliers } = await import('./purchaseOrderParser');
+        
+        // 解码base64
+        const buffer = Buffer.from(input.fileContent, 'base64');
+        
+        // 解析Excel
+        const orders = parsePurchaseOrderExcel(buffer);
+        
+        // 计算份额
+        const calculations = calculateSupplierShares(orders);
+        
+        // 提取供应商列表
+        const uniqueSuppliers = extractUniqueSuppliers(orders);
+        
+        return {
+          success: true,
+          orderCount: orders.length,
+          materialCount: calculations.length,
+          supplierCount: uniqueSuppliers.length,
+          calculations,
+          suppliers: uniqueSuppliers,
+        };
+      }),
+    
+    // 应用计算结果（创建供应商和映射）
+    applyCalculations: protectedProcedure
+      .input(z.object({
+        calculations: z.array(z.object({
+          materialCode: z.string(),
+          materialName: z.string(),
+          suppliers: z.array(z.object({
+            supplierName: z.string(),
+            sharePercentage: z.number(),
+          })),
+        })),
+        createMissingSuppliers: z.boolean().default(true),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const existingSuppliers = await db.getSuppliersByUserId(ctx.user.id);
+        const supplierMap = new Map(existingSuppliers.map(s => [s.supplierName, s.id]));
+        
+        let createdSuppliers = 0;
+        let createdMappings = 0;
+        
+        // 创建缺失的供应商
+        if (input.createMissingSuppliers) {
+          const allSupplierNames = new Set<string>();
+          for (const calc of input.calculations) {
+            for (const supplier of calc.suppliers) {
+              allSupplierNames.add(supplier.supplierName);
+            }
+          }
+          
+          for (const supplierName of allSupplierNames) {
+            if (!supplierMap.has(supplierName)) {
+              const supplierId = await db.createSupplier({
+                userId: ctx.user.id,
+                supplierName,
+              });
+              supplierMap.set(supplierName, Number(supplierId));
+              createdSuppliers++;
+            }
+          }
+        }
+        
+        // 创建映射
+        for (const calc of input.calculations) {
+          // 删除旧映射
+          await db.deleteMaterialSupplierMappingsByMaterialCode(ctx.user.id, calc.materialCode);
+          
+          // 创建新映射
+          for (let i = 0; i < calc.suppliers.length; i++) {
+            const supplier = calc.suppliers[i];
+            const supplierId = supplierMap.get(supplier.supplierName);
+            
+            if (supplierId) {
+              await db.createMaterialSupplierMapping({
+                userId: ctx.user.id,
+                materialCode: calc.materialCode,
+                supplierId,
+                sharePercentage: supplier.sharePercentage.toFixed(2),
+                priority: i + 1,
+              });
+              createdMappings++;
+            }
+          }
+        }
+        
+        return {
+          success: true,
+          createdSuppliers,
+          createdMappings,
+        };
+      }),
+  }),
+
+  // Material Supplier MappingsByUserId(ctx.user.id);
       const suppliers = await db.getSuppliersByUserId(ctx.user.id);
       
       const supplierMap = new Map(suppliers.map(s => [s.id, s]));
@@ -420,110 +524,6 @@ export const appRouter = router({
         return {
           csv,
           filename: `邮件发送清单_${new Date().toISOString().split('T')[0]}.csv`,
-        };
-      }),
-  }),
-
-  // 采购订单导入
-  purchaseOrder: router({
-    // 解析采购订单并计算份额
-    parseAndCalculate: protectedProcedure
-      .input(z.object({
-        fileContent: z.string(), // base64 encoded
-      }))
-      .mutation(async ({ ctx, input }) => {
-        const { parsePurchaseOrderExcel, calculateSupplierShares, extractUniqueSuppliers } = await import('./purchaseOrderParser');
-        
-        // 解码base64
-        const buffer = Buffer.from(input.fileContent, 'base64');
-        
-        // 解析Excel
-        const orders = parsePurchaseOrderExcel(buffer);
-        
-        // 计算份额
-        const calculations = calculateSupplierShares(orders);
-        
-        // 提取供应商列表
-        const uniqueSuppliers = extractUniqueSuppliers(orders);
-        
-        return {
-          success: true,
-          orderCount: orders.length,
-          materialCount: calculations.length,
-          supplierCount: uniqueSuppliers.length,
-          calculations,
-          suppliers: uniqueSuppliers,
-        };
-      }),
-    
-    // 应用计算结果（创建供应商和映射）
-    applyCalculations: protectedProcedure
-      .input(z.object({
-        calculations: z.array(z.object({
-          materialCode: z.string(),
-          materialName: z.string(),
-          suppliers: z.array(z.object({
-            supplierName: z.string(),
-            sharePercentage: z.number(),
-          })),
-        })),
-        createMissingSuppliers: z.boolean().default(true),
-      }))
-      .mutation(async ({ ctx, input }) => {
-        const existingSuppliers = await db.getSuppliersByUserId(ctx.user.id);
-        const supplierMap = new Map(existingSuppliers.map(s => [s.supplierName, s.id]));
-        
-        let createdSuppliers = 0;
-        let createdMappings = 0;
-        
-        // 创建缺失的供应商
-        if (input.createMissingSuppliers) {
-          const allSupplierNames = new Set<string>();
-          for (const calc of input.calculations) {
-            for (const supplier of calc.suppliers) {
-              allSupplierNames.add(supplier.supplierName);
-            }
-          }
-          
-          for (const supplierName of Array.from(allSupplierNames)) {
-            if (!supplierMap.has(supplierName)) {
-              const supplierId = await db.createSupplier({
-                userId: ctx.user.id,
-                supplierName,
-              });
-              supplierMap.set(supplierName, Number(supplierId));
-              createdSuppliers++;
-            }
-          }
-        }
-        
-        // 创建映射
-        for (const calc of input.calculations) {
-          // 删除旧映射
-          await db.deleteMaterialSupplierMappingsByMaterialCode(ctx.user.id, calc.materialCode);
-          
-          // 创建新映射
-          for (let i = 0; i < calc.suppliers.length; i++) {
-            const supplier = calc.suppliers[i];
-            const supplierId = supplierMap.get(supplier.supplierName);
-            
-            if (supplierId) {
-              await db.createMaterialSupplierMapping({
-                userId: ctx.user.id,
-                materialCode: calc.materialCode,
-                supplierId,
-                sharePercentage: supplier.sharePercentage.toFixed(2),
-                priority: i + 1,
-              });
-              createdMappings++;
-            }
-          }
-        }
-        
-        return {
-          success: true,
-          createdSuppliers,
-          createdMappings,
         };
       }),
   }),
