@@ -13,6 +13,8 @@ export default function EmailGeneration() {
   const [selectedPlanId, setSelectedPlanId] = useState<string>("");
   const [previewEmail, setPreviewEmail] = useState<{ subject: string; body: string } | null>(null);
   const [previewDialogOpen, setPreviewDialogOpen] = useState(false);
+  const [editedSubject, setEditedSubject] = useState("");
+  const [editedBody, setEditedBody] = useState("");
 
   const { data: plans, isLoading: plansLoading } = trpc.materialPlan.list.useQuery();
   const { data: generatedEmails, isLoading: emailsLoading } = trpc.email.getByPlanId.useQuery(
@@ -58,6 +60,8 @@ export default function EmailGeneration() {
 
   const handlePreview = (email: { emailSubject: string; emailBody: string }) => {
     setPreviewEmail({ subject: email.emailSubject, body: email.emailBody });
+    setEditedSubject(email.emailSubject);
+    setEditedBody(email.emailBody);
     setPreviewDialogOpen(true);
   };
 
@@ -283,21 +287,65 @@ export default function EmailGeneration() {
       )}
 
       <Dialog open={previewDialogOpen} onOpenChange={setPreviewDialogOpen}>
-        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-[90vw] w-full max-h-[90vh] overflow-hidden flex flex-col">
           <DialogHeader>
-            <DialogTitle>邮件预览</DialogTitle>
-            <DialogDescription>查看邮件完整内容</DialogDescription>
+            <DialogTitle>邮件预览与编辑</DialogTitle>
+            <DialogDescription>查看和编辑邮件内容，修改后可复制使用</DialogDescription>
           </DialogHeader>
           {previewEmail && (
-            <div className="space-y-4">
+            <div className="space-y-4 flex-1 overflow-y-auto pr-2">
               <div>
                 <Label className="text-sm font-medium">主题</Label>
-                <p className="mt-1 p-3 bg-muted rounded-md">{previewEmail.subject}</p>
+                <input
+                  type="text"
+                  value={editedSubject}
+                  onChange={(e) => setEditedSubject(e.target.value)}
+                  className="mt-1 w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                />
               </div>
-              <div>
-                <Label className="text-sm font-medium">正文</Label>
-                <div className="mt-1 p-4 bg-muted rounded-md prose prose-sm max-w-none">
-                  <Streamdown>{previewEmail.body}</Streamdown>
+              <div className="flex-1 flex flex-col">
+                <div className="flex items-center justify-between mb-2">
+                  <Label className="text-sm font-medium">正文</Label>
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        navigator.clipboard.writeText(editedBody);
+                        toast.success('已复制到剪贴板');
+                      }}
+                    >
+                      复制正文
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        setEditedSubject(previewEmail.subject);
+                        setEditedBody(previewEmail.body);
+                        toast.success('已重置为原始内容');
+                      }}
+                    >
+                      重置
+                    </Button>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4 flex-1" style={{ minHeight: '500px' }}>
+                  <div className="flex flex-col">
+                    <Label className="text-xs text-muted-foreground mb-2">编辑区</Label>
+                    <textarea
+                      value={editedBody}
+                      onChange={(e) => setEditedBody(e.target.value)}
+                      className="flex-1 p-3 border rounded-md font-mono text-sm focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+                      style={{ minHeight: '450px' }}
+                    />
+                  </div>
+                  <div className="flex flex-col">
+                    <Label className="text-xs text-muted-foreground mb-2">预览区</Label>
+                    <div className="flex-1 p-4 border rounded-md bg-muted overflow-y-auto prose prose-sm max-w-none" style={{ minHeight: '450px' }}>
+                      <Streamdown>{editedBody}</Streamdown>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

@@ -86,6 +86,36 @@ export default function ShareAllocationDialog({
   const updateSupplier = (index: number, field: keyof SupplierShare, value: number) => {
     const updated = [...supplierShares];
     updated[index] = { ...updated[index], [field]: value };
+    
+    // 如果修改的是份额百分比，自动计算剩余份额
+    if (field === 'sharePercentage' && updated.length > 1) {
+      const currentTotal = updated.reduce((sum, s, i) => {
+        return i === index ? sum : sum + s.sharePercentage;
+      }, 0);
+      
+      const remaining = 100 - value;
+      
+      // 如果剩余份额大于0且还有其他供应商，自动分配到其他供应商
+      if (remaining > 0) {
+        const otherSuppliers = updated.filter((_, i) => i !== index);
+        const avgRemaining = remaining / otherSuppliers.length;
+        
+        updated.forEach((s, i) => {
+          if (i !== index) {
+            updated[i].sharePercentage = parseFloat(avgRemaining.toFixed(2));
+          }
+        });
+        
+        // 补足四舍五入的误差
+        const newTotal = updated.reduce((sum, s) => sum + s.sharePercentage, 0);
+        if (Math.abs(newTotal - 100) > 0.01 && otherSuppliers.length > 0) {
+          const diff = 100 - newTotal;
+          const firstOtherIndex = updated.findIndex((_, i) => i !== index);
+          updated[firstOtherIndex].sharePercentage = parseFloat((updated[firstOtherIndex].sharePercentage + diff).toFixed(2));
+        }
+      }
+    }
+    
     setSupplierShares(updated);
   };
 
