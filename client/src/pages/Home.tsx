@@ -3,7 +3,7 @@ import { getLoginUrl } from "@/const";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Upload, Users, Mail, FileSpreadsheet, Settings as SettingsIcon, BarChart3 } from "lucide-react";
+import { Upload, Users, Mail, FileSpreadsheet, Settings as SettingsIcon, BarChart3, PieChart } from "lucide-react";
 import { Link } from "wouter";
 import { useState } from "react";
 import MaterialPlanUpload from "@/components/MaterialPlanUpload";
@@ -91,7 +91,7 @@ export default function Home() {
 
       <main className="container mx-auto px-4 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full max-w-2xl mx-auto grid-cols-3">
+          <TabsList className="grid w-full max-w-3xl mx-auto grid-cols-4">
             <TabsTrigger value="upload" className="flex items-center gap-2">
               <Upload className="h-4 w-4" />
               <span className="hidden sm:inline">上传物料计划</span>
@@ -101,6 +101,11 @@ export default function Home() {
               <Users className="h-4 w-4" />
               <span className="hidden sm:inline">供应商管理</span>
               <span className="sm:hidden">供应商</span>
+            </TabsTrigger>
+            <TabsTrigger value="share" className="flex items-center gap-2">
+              <PieChart className="h-4 w-4" />
+              <span className="hidden sm:inline">物料份额分配</span>
+              <span className="sm:hidden">份额</span>
             </TabsTrigger>
             <TabsTrigger value="emails" className="flex items-center gap-2">
               <Mail className="h-4 w-4" />
@@ -114,7 +119,26 @@ export default function Home() {
           </TabsContent>
 
           <TabsContent value="suppliers" className="space-y-4">
-            <SupplierManagement onMappingComplete={() => setActiveTab("emails")} />
+            <SupplierManagement onMappingComplete={() => setActiveTab("share")} />
+          </TabsContent>
+
+          <TabsContent value="share" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>物料份额分配</CardTitle>
+                <CardDescription>
+                  管理每个物料的供应商份额分配，支持批量操作和历史记录查看
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Link href="/share-allocation">
+                  <Button className="w-full" size="lg">
+                    <PieChart className="h-5 w-5 mr-2" />
+                    进入份额分配管理
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="emails" className="space-y-4">
