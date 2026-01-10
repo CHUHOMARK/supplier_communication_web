@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Users, Plus, Upload, CheckCircle, AlertCircle, Trash2 } from "lucide-react";
 import PurchaseOrderImport from "@/components/PurchaseOrderImport";
 import { trpc } from "@/lib/trpc";
@@ -18,6 +19,7 @@ export default function SupplierManagement({ onMappingComplete }: SupplierManage
   const [mappingFile, setMappingFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [selectedPlanId, setSelectedPlanId] = useState<number | undefined>(undefined);
 
   const [newSupplier, setNewSupplier] = useState({
     supplierName: "",
@@ -27,7 +29,10 @@ export default function SupplierManagement({ onMappingComplete }: SupplierManage
   });
 
   const utils = trpc.useUtils();
-  const { data: suppliers, isLoading: suppliersLoading } = trpc.supplier.list.useQuery();
+  const { data: plans } = trpc.materialPlan.list.useQuery();
+  const { data: suppliers, isLoading: suppliersLoading } = trpc.supplier.list.useQuery(
+    selectedPlanId ? { planId: selectedPlanId } : undefined
+  );
   const { data: mappings, isLoading: mappingsLoading } = trpc.mapping.list.useQuery();
 
   const uploadMappingMutation = trpc.supplier.uploadMapping.useMutation({
@@ -241,7 +246,30 @@ export default function SupplierManagement({ onMappingComplete }: SupplierManage
           </div>
           <CardDescription>管理您的供应商信息</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
+          {/* 物料计划选择器 */}
+          <div className="flex items-center gap-2">
+            <Label className="whitespace-nowrap">筛选计划：</Label>
+            <Select
+              value={selectedPlanId?.toString() || "all"}
+              onValueChange={(value) => setSelectedPlanId(value === "all" ? undefined : Number(value))}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="全部供应商" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">全部供应商</SelectItem>
+                {plans?.map((plan) => (
+                  <SelectItem key={plan.id} value={plan.id.toString()}>
+                    {plan.fileName} ({plan.planStartDate} - {plan.planEndDate})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* 供应商表格 */}
+          <div>
           {suppliersLoading ? (
             <div className="flex items-center justify-center py-8">
               <AlertCircle className="h-6 w-6 animate-spin" />
@@ -285,6 +313,7 @@ export default function SupplierManagement({ onMappingComplete }: SupplierManage
               <p>暂无供应商，请先上传映射表或手动添加</p>
             </div>
           )}
+          </div>
         </CardContent>
       </Card>
     </div>

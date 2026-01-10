@@ -1,4 +1,4 @@
-import { eq, and, sql, desc } from "drizzle-orm";
+import { eq, and, sql, desc, inArray } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import {
   InsertUser,
@@ -647,4 +647,80 @@ export async function getSupplierById(id: number) {
     .limit(1);
 
   return result.length > 0 ? result[0] : null;
+}
+
+/**
+ * 获取指定物料计划中有物料的供应商列表
+ */
+export async function getSuppliersByPlanId(userId: number, planId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  
+  // 获取该计划中的所有物料代码
+  const items = await db
+    .select({ materialCode: materialItems.materialCode })
+    .from(materialItems)
+    .where(eq(materialItems.planId, planId));
+  
+  if (items.length === 0) return [];
+  
+  const materialCodes = items.map(item => item.materialCode);
+  
+  // 获取这些物料对应的供应商ID
+  const mappings = await db
+    .select({ supplierId: materialSupplierMappings.supplierId })
+    .from(materialSupplierMappings)
+    .where(
+      and(
+        eq(materialSupplierMappings.userId, userId),
+        inArray(materialSupplierMappings.materialCode, materialCodes)
+      )
+    );
+  
+  if (mappings.length === 0) return [];
+  
+  // 去重供应商ID
+  const supplierIds = Array.from(new Set(mappings.map(m => m.supplierId)));
+  
+  // 获取供应商详情
+  return await db
+    .select()
+    .from(suppliers)
+    .where(
+      and(
+        eq(suppliers.userId, userId),
+        inArray(suppliers.id, supplierIds)
+      )
+    );
+}
+
+/**
+ * 获取指定物料计划中的多供应商物料映射
+ */
+export async function getMaterialMappingsByPlanId(userId: number, planId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  
+  // 获取该计划中的所有物料代码
+  const items = await db
+    .select({ materialCode: materialItems.materialCode })
+    .from(materialItems)
+    .where(eq(materialItems.planId, planId));
+  
+  if (items.length === 0) return [];
+  
+  const materialCodes = items.map(item => item.materialCode);
+  
+  // 获取这些物料的映射关系
+  const mappings = await db
+    .select()
+    .from(materialSupplierMappings)
+    .where(
+      and(
+        eq(materialSupplierMappings.userId, userId),
+        inArray(materialSupplierMappings.materialCode, materialCodes)
+      )
+    );
+  
+  return mappings;
 }

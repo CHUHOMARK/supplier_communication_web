@@ -4,14 +4,25 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
 import ShareAllocationDialog from '@/components/ShareAllocationDialog';
 import { Loader2 } from 'lucide-react';
 
 export default function ShareAllocation() {
   const [selectedMaterial, setSelectedMaterial] = useState<{ code: string; name: string } | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [selectedPlanId, setSelectedPlanId] = useState<number | undefined>(undefined);
 
+  const { data: plans } = trpc.materialPlan.list.useQuery();
   const { data: mappings, isLoading, refetch } = trpc.mapping.list.useQuery();
+  
+  // 获取当前计划中的物料代码
+  const { data: planItems } = trpc.materialPlan.getById.useQuery(
+    { planId: selectedPlanId! },
+    { enabled: !!selectedPlanId }
+  );
+  const planMaterialCodes = new Set(planItems?.items.map(item => item.materialCode) || []);
 
   // 按物料代码分组，只显示有多个供应商的物料
   const materialGroups = mappings?.reduce((acc, mapping) => {
@@ -31,10 +42,17 @@ export default function ShareAllocation() {
     return acc;
   }, {} as Record<string, { materialCode: string; suppliers: Array<{ supplierId: number; supplierName: string; sharePercentage: number; priority: number }> }>);
 
-  // 只保留多供应商物料
-  const multiSupplierMaterials = Object.values(materialGroups || {}).filter(
+  // 只保留多供应商物料，并按计划过滤
+  let multiSupplierMaterials = Object.values(materialGroups || {}).filter(
     (group) => group.suppliers.length > 1
   );
+  
+  // 如果选择了计划，只显示该计划中的物料
+  if (selectedPlanId && planMaterialCodes.size > 0) {
+    multiSupplierMaterials = multiSupplierMaterials.filter(
+      (group) => planMaterialCodes.has(group.materialCode)
+    );
+  }
 
   const handleEditShare = (materialCode: string) => {
     setSelectedMaterial({ code: materialCode, name: materialCode });
@@ -73,7 +91,28 @@ export default function ShareAllocation() {
               以下物料有多个供应商，点击"编辑份额"可调整各供应商的份额分配
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
+            {/* 物料计划选择器 */}
+            <div className="flex items-center gap-2">
+              <Label className="whitespace-nowrap">筛选计划：</Label>
+              <Select
+                value={selectedPlanId?.toString() || "all"}
+                onValueChange={(value) => setSelectedPlanId(value === "all" ? undefined : Number(value))}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="全部物料" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">全部物料</SelectItem>
+                  {plans?.map((plan) => (
+                    <SelectItem key={plan.id} value={plan.id.toString()}>
+                      {plan.fileName} ({plan.planStartDate} - {plan.planEndDate})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             {multiSupplierMaterials.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground">
                 <p>暂无多供应商物料</p>

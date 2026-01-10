@@ -105,10 +105,16 @@ export const appRouter = router({
 
   // 供应商管理
   supplier: router({
-    // 获取所有供应商
-    list: protectedProcedure.query(async ({ ctx }) => {
-      return await db.getSuppliersByUserId(ctx.user.id);
-    }),
+    // 获取所有供应商（可选按物料计划过滤）
+    list: protectedProcedure
+      .input(z.object({ planId: z.number().optional() }).optional())
+      .query(async ({ ctx, input }) => {
+        if (input?.planId) {
+          // 如果指定了planId，只返回该计划中有物料的供应商
+          return await db.getSuppliersByPlanId(ctx.user.id, input.planId);
+        }
+        return await db.getSuppliersByUserId(ctx.user.id);
+      }),
     
     // 创建供应商
     create: protectedProcedure
