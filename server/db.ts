@@ -1,15 +1,16 @@
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, sql, desc } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { 
-  InsertUser, 
-  users, 
+import {
+  InsertUser,
+  users,
+  suppliers,
   materialPlans,
   materialItems,
-  suppliers,
   materialSupplierMappings,
-  shareChangeHistory,
   generatedEmails,
+  shareChangeHistory,
   emailSendLogs,
+  supplierConfirmations,
   InsertMaterialPlan,
   InsertMaterialItem,
   InsertSupplier,
@@ -502,4 +503,148 @@ export async function getUserDataStats(userId: number) {
     emails: emailsCount,
     emailLogs: emailLogsCount.length,
   };
+}
+
+// ==================== 供应商确认记录相关函数 ====================
+
+/**
+ * 创建供应商确认记录
+ */
+export async function createSupplierConfirmation(data: {
+  userId: number;
+  planId: number;
+  supplierId: number;
+  emailLogId?: number;
+  confirmToken: string;
+  expiresAt: Date;
+}) {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  const result = await db.insert(supplierConfirmations).values(data);
+  return result[0].insertId;
+}
+
+/**
+ * 根据token获取确认记录
+ */
+export async function getConfirmationByToken(token: string) {
+  const db = await getDb();
+  if (!db) {
+    return null;
+  }
+
+  const result = await db
+    .select()
+    .from(supplierConfirmations)
+    .where(eq(supplierConfirmations.confirmToken, token))
+    .limit(1);
+
+  return result.length > 0 ? result[0] : null;
+}
+
+/**
+ * 更新确认记录状态
+ */
+export async function updateConfirmationStatus(
+  id: number,
+  data: {
+    status: "pending" | "confirmed" | "partial" | "rejected" | "modified";
+    supplierResponse?: string;
+    supplierNotes?: string;
+    confirmedAt?: Date;
+  }
+) {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  await db
+    .update(supplierConfirmations)
+    .set(data)
+    .where(eq(supplierConfirmations.id, id));
+}
+
+/**
+ * 获取物料计划的所有确认记录
+ */
+export async function getConfirmationsByPlanId(planId: number) {
+  const db = await getDb();
+  if (!db) {
+    return [];
+  }
+
+  const result = await db
+    .select({
+      confirmation: supplierConfirmations,
+      supplier: suppliers,
+    })
+    .from(supplierConfirmations)
+    .leftJoin(suppliers, eq(supplierConfirmations.supplierId, suppliers.id))
+    .where(eq(supplierConfirmations.planId, planId))
+    .orderBy(supplierConfirmations.createdAt);
+
+  return result;
+}
+
+/**
+ * 获取用户的所有确认记录统计
+ */
+export async function getConfirmationStatsByUserId(userId: number) {
+  const db = await getDb();
+  if (!db) {
+    return {
+      total: 0,
+      pending: 0,
+      confirmed: 0,
+      partial: 0,
+      rejected: 0,
+      modified: 0,
+    };
+  }
+
+  const result = await db
+    .select()
+    .from(supplierConfirmations)
+    .where(eq(supplierConfirmations.userId, userId));
+
+  const stats = {
+    total: result.length,
+    pending: 0,
+    confirmed: 0,
+    partial: 0,
+    rejected: 0,
+    modified: 0,
+  };
+
+  result.forEach((record) => {
+    if (record.status === "pending") stats.pending++;
+    else if (record.status === "confirmed") stats.confirmed++;
+    else if (record.status === "partial") stats.partial++;
+    else if (record.status === "rejected") stats.rejected++;
+    else if (record.status === "modified") stats.modified++;
+  });
+
+  return stats;
+}
+
+/**
+ * 根据ID获取供应商
+ */
+export async function getSupplierById(id: number) {
+  const db = await getDb();
+  if (!db) {
+    return null;
+  }
+
+  const result = await db
+    .select()
+    .from(suppliers)
+    .where(eq(suppliers.id, id))
+    .limit(1);
+
+  return result.length > 0 ? result[0] : null;
 }

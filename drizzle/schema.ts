@@ -135,6 +135,28 @@ export type EmailSendLog = typeof emailSendLogs.$inferSelect;
 export type InsertEmailSendLog = typeof emailSendLogs.$inferInsert;
 
 /**
+ * 供应商确认记录表
+ */
+export const supplierConfirmations = mysqlTable("supplier_confirmations", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(), // 采购方用户ID
+  planId: int("planId").notNull(), // 物料计划ID
+  supplierId: int("supplierId").notNull(), // 供应商ID
+  emailLogId: int("emailLogId"), // 关联的邮件发送记录ID
+  confirmToken: varchar("confirmToken", { length: 64 }).notNull().unique(), // 确认token
+  status: mysqlEnum("status", ["pending", "confirmed", "partial", "rejected", "modified"]).default("pending").notNull(),
+  supplierResponse: text("supplierResponse"), // 供应商的响应内容（JSON）
+  supplierNotes: text("supplierNotes"), // 供应商备注
+  confirmedAt: timestamp("confirmedAt"), // 确认时间
+  expiresAt: timestamp("expiresAt").notNull(), // 链接过期时间
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type SupplierConfirmation = typeof supplierConfirmations.$inferSelect;
+export type InsertSupplierConfirmation = typeof supplierConfirmations.$inferInsert;
+
+/**
  * 生成的邮件记录表
  */
 export const generatedEmails = mysqlTable("generated_emails", {

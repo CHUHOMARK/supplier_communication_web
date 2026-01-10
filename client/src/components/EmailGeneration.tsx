@@ -37,6 +37,8 @@ export default function EmailGeneration() {
     { enabled: false }
   );
 
+  const createConfirmationMutation = trpc.confirmation.create.useMutation();
+
   const sendEmailMutation = trpc.email.send.useMutation({
     onSuccess: () => {
       toast.success('邮件发送成功');
@@ -245,13 +247,21 @@ export default function EmailGeneration() {
                             toast.error('该供应商未设置邮箱');
                             return;
                           }
-                          sendEmailMutation.mutate({
-                            planId: Number(selectedPlanId),
-                            supplierId: email.supplierId,
-                            recipientEmail: email.supplier.email,
-                            subject: email.emailSubject,
-                            content: email.emailBody,
-                          });
+                        // 发送邮件
+                        sendEmailMutation.mutate({
+                          planId: Number(selectedPlanId),
+                          supplierId: email.supplierId,
+                          recipientEmail: email.supplier.email,
+                          subject: email.emailSubject,
+                          content: email.emailBody,
+                        });
+                        
+                        // 创建确认记录
+                        createConfirmationMutation.mutate({
+                          planId: Number(selectedPlanId),
+                          supplierId: email.supplierId,
+                          expiryDays: 30,
+                        });
                         }}
                         disabled={!email.supplier?.email || sendEmailMutation.isPending}
                       >

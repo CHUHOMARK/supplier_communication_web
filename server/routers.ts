@@ -704,6 +704,138 @@ export const appRouter = router({
         };
       }),
   }),
+
+  // 供应商确认跟踪系统
+  confirmation: router({
+    // 根据token获取确认信息（公开接口，供应商无需登录）
+    getByToken: publicProcedure
+      .input(z.object({
+        token: z.string(),
+      }))
+      .query(async ({ input }) => {
+        const confirmation = await db.getConfirmationByToken(input.token);
+        
+        if (!confirmation) {
+          throw new TRPCError({
+            code: 'NOT_FOUND',
+            message: '确认记录不存在',
+          });
+        }
+
+        // 检查是否过期
+        const { isTokenExpired } = await import('./confirmationService');
+        if (isTokenExpired(confirmation.expiresAt)) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: '确认链接已过期',
+          });
+        }
+
+        // 获取关联的供应商和物料计划信息
+        const supplier = await db.getSupplierById(confirmation.supplierId);
+        const plan = await db.getMaterialPlanById(confirmation.planId);
+        const items = plan ? await db.getMaterialItemsByPlanId(plan.id) : [];
+
+        return {
+          confirmation,
+          supplier,
+          plan,
+          items,
+        };
+      }),
+
+    // 供应商提交确认响应（公开接口）
+    submit: publicProcedure
+      .input(z.object({
+        token: z.string(),
+        status: z.enum(['confirmed', 'partial', 'rejected', 'modified']),
+        supplierResponse: z.string().optional(), // JSON字符串
+        supplierNotes: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const confirmation = await db.getConfirmationByToken(input.token);
+        
+        if (!confirmation) {
+          throw new TRPCError({
+            code: 'NOT_FOUND',
+            message: '确认记录不存在',
+          });
+        }
+
+        // 检查是否过期
+        const { isTokenExpired } = await import('./confirmationService');
+        if (isTokenExpired(confirmation.expiresAt)) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: '确认链接已过期',
+          });
+        }
+
+        // 更新确认状态
+        await db.updateConfirmationStatus(confirmation.id, {
+          status: input.status,
+          supplierResponse: input.supplierResponse,
+          supplierNotes: input.supplierNotes,
+          confirmedAt: new Date(),
+        });
+
+        return {
+          success: true,
+          message: '确认提交成功',
+        };
+      }),
+
+    // 获取物料计划的所有确认记录（需要登录）
+    getByPlanId: protectedProcedure
+      .input(z.object({
+        planId: z.number(),
+      }))
+      .query(async ({ input }) => {
+        const confirmations = await db.getConfirmationsByPlanId(input.planId);
+        return confirmations;
+      }),
+
+    // 获取确认统计（需要登录）
+    getStats: protectedProcedure
+      .query(async ({ ctx }) => {
+        const stats = await db.getConfirmationStatsByUserId(ctx.user.id);
+        return stats;
+      }),
+
+    // 创建确认记录（需要登录）
+    create: protectedProcedure
+      .input(z.object({
+        planId: z.number(),
+        supplierId: z.number(),
+        emailLogId: z.number().optional(),
+        expiryDays: z.number().default(30),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const { generateConfirmToken, calculateExpiryDate } = await import('./confirmationService');
+        
+        const token = generateConfirmToken();
+        const expiresAt = calculateExpiryDate(input.expiryDays);
+
+        const confirmationId = await db.createSupplierConfirmation({
+          userId: ctx.user.id,
+          planId: input.planId,
+          supplierId: input.supplierId,
+          emailLogId: input.emailLogId,
+          confirmToken: token,
+          expiresAt,
+        });
+
+        const { generateConfirmationUrl } = await import('./confirmationService');
+        const confirmUrl = generateConfirmationUrl(token);
+
+        return {
+          confirmationId: Number(confirmationId),
+          token,
+          confirmUrl,
+          expiresAt,
+        };
+      }),
+  }),
 });
 
 export type AppRouter = typeof appRouter;
