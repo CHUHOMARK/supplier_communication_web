@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, AlertCircle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Plus, Trash2, AlertCircle, Lightbulb, TrendingUp } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 
@@ -30,6 +31,7 @@ export default function ShareAllocationDialog({
   onSuccess,
 }: ShareAllocationDialogProps) {
   const [supplierShares, setSupplierShares] = useState<SupplierShare[]>([]);
+  const [showSuggestion, setShowSuggestion] = useState(false);
 
   const { data: suppliers } = trpc.supplier.list.useQuery();
   const { data: existingMappings } = trpc.mapping.getByMaterialCode.useQuery(
@@ -82,116 +84,159 @@ export default function ShareAllocationDialog({
   };
 
   const updateSupplier = (index: number, field: keyof SupplierShare, value: number) => {
-    const newShares = [...supplierShares];
-    newShares[index] = { ...newShares[index], [field]: value };
-    setSupplierShares(newShares);
+    const updated = [...supplierShares];
+    updated[index] = { ...updated[index], [field]: value };
+    setSupplierShares(updated);
   };
 
-  const totalShare = supplierShares.reduce((sum, s) => sum + s.sharePercentage, 0);
-  const isValid = Math.abs(totalShare - 100) < 0.01 && supplierShares.every((s) => s.supplierId > 0);
-
   const handleSave = () => {
-    if (!isValid) {
-      toast.error('请确保所有供应商已选择，且份额总和为100%');
+    // 验证
+    if (supplierShares.length === 0) {
+      toast.error('请至少添加一个供应商');
+      return;
+    }
+
+    const invalidSupplier = supplierShares.find((s) => s.supplierId === 0);
+    if (invalidSupplier) {
+      toast.error('请选择所有供应商');
+      return;
+    }
+
+    const totalShare = supplierShares.reduce((sum, s) => sum + s.sharePercentage, 0);
+    if (Math.abs(totalShare - 100) > 0.01) {
+      toast.error(`份额总和必须为100%，当前为${totalShare.toFixed(2)}%`);
       return;
     }
 
     upsertMutation.mutate({
       materialCode,
-      suppliers: supplierShares.map((s) => ({
-        supplierId: s.supplierId,
-        sharePercentage: s.sharePercentage,
-        priority: s.priority,
-      })),
+      suppliers: supplierShares,
     });
   };
 
+  // 智能份额建议：根据供应商数量平均分配
+  const applySuggestion = () => {
+    if (supplierShares.length === 0) {
+      toast.error('请先添加供应商');
+      return;
+    }
+
+    const avgShare = 100 / supplierShares.length;
+    const updated = supplierShares.map((s, index) => ({
+      ...s,
+      sharePercentage: index === 0 
+        ? parseFloat((100 - avgShare * (supplierShares.length - 1)).toFixed(2)) // 第一个供应商补足余数
+        : parseFloat(avgShare.toFixed(2)),
+    }));
+
+    setSupplierShares(updated);
+    toast.success('已应用平均份额建议');
+  };
+
+  const totalShare = supplierShares.reduce((sum, s) => sum + s.sharePercentage, 0);
+  const isValidTotal = Math.abs(totalShare - 100) < 0.01;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>供应商份额分配</DialogTitle>
+          <DialogTitle>编辑物料份额分配</DialogTitle>
           <DialogDescription>
-            为物料 <strong>{materialCode}</strong> ({materialName}) 分配供应商份额
+            物料: {materialCode} {materialName && `- ${materialName}`}
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-4">
-          {supplierShares.map((share, index) => (
-            <div key={index} className="flex items-end gap-2 p-3 border rounded-lg">
-              <div className="flex-1 space-y-2">
-                <Label>供应商</Label>
-                <Select
-                  value={share.supplierId.toString()}
-                  onValueChange={(value) => updateSupplier(index, "supplierId", parseInt(value))}
+        <div className="space-y-4">
+          {/* 智能建议提示 */}
+          {supplierShares.length > 1 && !isValidTotal && (
+            <Alert>
+              <Lightbulb className="h-4 w-4" />
+              <AlertDescription className="flex items-center justify-between">
+                <span>可以使用智能建议功能快速分配份额</span>
+                <Button size="sm" variant="outline" onClick={applySuggestion}>
+                  <TrendingUp className="h-4 w-4 mr-2" />
+                  应用平均分配
+                </Button>
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {/* 供应商份额列表 */}
+          <div className="space-y-3">
+            {supplierShares.map((share, index) => (
+              <div key={index} className="flex gap-3 items-end p-3 border rounded-lg">
+                <div className="flex-1">
+                  <Label className="text-sm">供应商</Label>
+                  <Select
+                    value={share.supplierId.toString()}
+                    onValueChange={(value) => updateSupplier(index, 'supplierId', parseInt(value))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="选择供应商" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {suppliers?.map((supplier) => (
+                        <SelectItem key={supplier.id} value={supplier.id.toString()}>
+                          {supplier.supplierName}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="w-32">
+                  <Label className="text-sm">份额 (%)</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.1"
+                    value={share.sharePercentage}
+                    onChange={(e) => updateSupplier(index, 'sharePercentage', parseFloat(e.target.value) || 0)}
+                  />
+                </div>
+
+                <div className="w-24">
+                  <Label className="text-sm">优先级</Label>
+                  <Input
+                    type="number"
+                    min="1"
+                    value={share.priority}
+                    onChange={(e) => updateSupplier(index, 'priority', parseInt(e.target.value) || 1)}
+                  />
+                </div>
+
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  onClick={() => removeSupplier(index)}
                 >
-                  <SelectTrigger>
-                    <SelectValue placeholder="选择供应商" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {suppliers?.map((supplier) => (
-                      <SelectItem key={supplier.id} value={supplier.id.toString()}>
-                        {supplier.supplierName}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  <Trash2 className="h-4 w-4" />
+                </Button>
               </div>
+            ))}
+          </div>
 
-              <div className="w-32 space-y-2">
-                <Label>份额 (%)</Label>
-                <Input
-                  type="number"
-                  min="0"
-                  max="100"
-                  step="0.1"
-                  value={share.sharePercentage}
-                  onChange={(e) => updateSupplier(index, "sharePercentage", parseFloat(e.target.value) || 0)}
-                />
-              </div>
-
-              <div className="w-24 space-y-2">
-                <Label>优先级</Label>
-                <Input
-                  type="number"
-                  min="1"
-                  value={share.priority}
-                  onChange={(e) => updateSupplier(index, "priority", parseInt(e.target.value) || 1)}
-                />
-              </div>
-
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => removeSupplier(index)}
-                className="mb-0"
-              >
-                <Trash2 className="h-4 w-4 text-destructive" />
-              </Button>
-            </div>
-          ))}
-
-          <Button variant="outline" onClick={addSupplier} className="w-full">
+          <Button onClick={addSupplier} variant="outline" className="w-full">
             <Plus className="h-4 w-4 mr-2" />
             添加供应商
           </Button>
 
+          {/* 份额总和提示 */}
           <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
-            <span className="font-medium">份额总和：</span>
-            <span
-              className={`text-lg font-bold ${
-                Math.abs(totalShare - 100) < 0.01 ? "text-green-600" : "text-red-600"
-              }`}
-            >
-              {totalShare.toFixed(1)}%
+            <span className="text-sm font-medium">份额总和:</span>
+            <span className={`text-lg font-bold ${isValidTotal ? 'text-green-600' : 'text-red-600'}`}>
+              {totalShare.toFixed(2)}%
             </span>
           </div>
 
-          {Math.abs(totalShare - 100) >= 0.01 && supplierShares.length > 0 && (
-            <div className="flex items-center gap-2 text-sm text-destructive">
+          {!isValidTotal && supplierShares.length > 0 && (
+            <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
-              <span>份额总和必须为100%</span>
-            </div>
+              <AlertDescription>
+                份额总和必须为100%，当前为{totalShare.toFixed(2)}%
+              </AlertDescription>
+            </Alert>
           )}
         </div>
 
@@ -199,8 +244,8 @@ export default function ShareAllocationDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             取消
           </Button>
-          <Button onClick={handleSave} disabled={!isValid || upsertMutation.isPending}>
-            {upsertMutation.isPending ? "保存中..." : "保存"}
+          <Button onClick={handleSave} disabled={upsertMutation.isPending || !isValidTotal}>
+            {upsertMutation.isPending ? '保存中...' : '保存'}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Users, Plus, Upload, CheckCircle, AlertCircle, Trash2, Edit, Percent } from "lucide-react";
 import ShareAllocationDialog from "@/components/ShareAllocationDialog";
 import PurchaseOrderImport from "@/components/PurchaseOrderImport";
@@ -103,54 +104,79 @@ export default function SupplierManagement({ onMappingComplete }: SupplierManage
     }
   };
 
-  const handleAddSupplier = () => {
-    if (!newSupplier.supplierName) {
+  const handleCreateSupplier = () => {
+    if (!newSupplier.supplierName.trim()) {
       toast.error('请输入供应商名称');
       return;
     }
+
     createSupplierMutation.mutate(newSupplier);
   };
 
-  const handleDeleteSupplier = (id: number) => {
-    if (confirm('确定要删除这个供应商吗？')) {
+  const handleDeleteSupplier = (id: number, name: string) => {
+    if (confirm(`确定要删除供应商"${name}"吗？这将同时删除相关的映射关系。`)) {
       deleteSupplierMutation.mutate({ id });
     }
   };
 
-  const getMappingCount = (supplierId: number) => {
-    return mappings?.filter(m => m.supplierId === supplierId).length || 0;
+  const handleEditShare = (materialCode: string, materialName: string) => {
+    setSelectedMaterial({ code: materialCode, name: materialName });
+    setShareDialogOpen(true);
   };
 
+  // 按物料分组映射关系，并统计供应商数量
+  const materialGroups = mappings?.reduce((acc, mapping) => {
+    const key = mapping.materialCode;
+    if (!acc[key]) {
+      acc[key] = {
+        materialCode: mapping.materialCode,
+        materialName: mapping.materialCode, // 使用materialCode作为显示名称
+        suppliers: [],
+      };
+    }
+    acc[key].suppliers.push(mapping);
+    return acc;
+  }, {} as Record<string, { materialCode: string; materialName: string; suppliers: typeof mappings }>);
+
+  // 只显示有多个供应商的物料
+  const multiSupplierMaterials = Object.values(materialGroups || {}).filter(
+    (group) => group.suppliers.length > 1
+  );
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
+      {/* 采购订单导入 */}
+      <PurchaseOrderImport onImportComplete={() => {
+        utils.supplier.list.invalidate();
+        utils.mapping.list.invalidate();
+        onMappingComplete?.();
+      }} />
+
+      {/* 供应商映射表上传 */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <div className="flex items-center gap-2">
             <Upload className="h-5 w-5" />
-            上传供应商映射表
-          </CardTitle>
+            <CardTitle>上传供应商映射表</CardTitle>
+          </div>
           <CardDescription>
             上传包含物料-供应商对应关系的Excel文件，系统将自动创建供应商并建立映射
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="mappingFile">选择Excel文件</Label>
-            <div className="flex gap-2">
-              <Input
-                id="mappingFile"
-                type="file"
-                accept=".xlsx,.xls"
-                onChange={handleMappingFileChange}
-                disabled={uploading}
-              />
-              {mappingFile && (
-                <div className="flex items-center gap-2 text-sm text-green-600">
-                  <CheckCircle className="h-4 w-4" />
-                  {mappingFile.name}
-                </div>
-              )}
-            </div>
+        <CardContent className="space-y-3">
+          <div>
+            <Label>选择Excel文件</Label>
+            <Input
+              type="file"
+              accept=".xlsx,.xls"
+              onChange={handleMappingFileChange}
+              className="mt-1"
+            />
+            {mappingFile && (
+              <p className="text-sm text-muted-foreground mt-1">
+                选择文件: {mappingFile.name}
+              </p>
+            )}
           </div>
 
           <Button
@@ -160,12 +186,12 @@ export default function SupplierManagement({ onMappingComplete }: SupplierManage
           >
             {uploading ? (
               <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                <AlertCircle className="mr-2 h-4 w-4 animate-spin" />
                 上传中...
               </>
             ) : (
               <>
-                <Upload className="h-4 w-4 mr-2" />
+                <Upload className="mr-2 h-4 w-4" />
                 上传映射表
               </>
             )}
@@ -173,15 +199,13 @@ export default function SupplierManagement({ onMappingComplete }: SupplierManage
         </CardContent>
       </Card>
 
+      {/* 供应商列表（紧凑表格） */}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <Users className="h-5 w-5" />
-                供应商列表
-              </CardTitle>
-              <CardDescription>管理您的供应商信息</CardDescription>
+            <div className="flex items-center gap-2">
+              <Users className="h-5 w-5" />
+              <CardTitle>供应商列表</CardTitle>
             </div>
             <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
               <DialogTrigger asChild>
@@ -195,39 +219,35 @@ export default function SupplierManagement({ onMappingComplete }: SupplierManage
                   <DialogTitle>添加新供应商</DialogTitle>
                   <DialogDescription>填写供应商基本信息</DialogDescription>
                 </DialogHeader>
-                <div className="space-y-4 py-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="supplierName">供应商名称 *</Label>
+                <div className="space-y-4">
+                  <div>
+                    <Label>供应商名称 *</Label>
                     <Input
-                      id="supplierName"
                       value={newSupplier.supplierName}
                       onChange={(e) => setNewSupplier({ ...newSupplier, supplierName: e.target.value })}
                       placeholder="请输入供应商名称"
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="contactPerson">联系人</Label>
+                  <div>
+                    <Label>联系人</Label>
                     <Input
-                      id="contactPerson"
                       value={newSupplier.contactPerson}
                       onChange={(e) => setNewSupplier({ ...newSupplier, contactPerson: e.target.value })}
                       placeholder="请输入联系人姓名"
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="email">邮箱</Label>
+                  <div>
+                    <Label>邮箱</Label>
                     <Input
-                      id="email"
                       type="email"
                       value={newSupplier.email}
                       onChange={(e) => setNewSupplier({ ...newSupplier, email: e.target.value })}
                       placeholder="请输入邮箱地址"
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="phone">电话</Label>
+                  <div>
+                    <Label>电话</Label>
                     <Input
-                      id="phone"
                       value={newSupplier.phone}
                       onChange={(e) => setNewSupplier({ ...newSupplier, phone: e.target.value })}
                       placeholder="请输入联系电话"
@@ -238,44 +258,52 @@ export default function SupplierManagement({ onMappingComplete }: SupplierManage
                   <Button variant="outline" onClick={() => setAddDialogOpen(false)}>
                     取消
                   </Button>
-                  <Button onClick={handleAddSupplier}>
+                  <Button onClick={handleCreateSupplier}>
                     确定
                   </Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
           </div>
+          <CardDescription>管理您的供应商信息</CardDescription>
         </CardHeader>
         <CardContent>
-          {suppliersLoading || mappingsLoading ? (
-            <div className="text-center py-8 text-muted-foreground">加载中...</div>
+          {suppliersLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <AlertCircle className="h-6 w-6 animate-spin" />
+            </div>
           ) : suppliers && suppliers.length > 0 ? (
-            <div className="space-y-2">
-              {suppliers.map((supplier) => (
-                <div
-                  key={supplier.id}
-                  className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent transition-colors"
-                >
-                  <div className="flex-1">
-                    <p className="font-medium">{supplier.supplierName}</p>
-                    <div className="text-sm text-muted-foreground space-y-1 mt-1">
-                      {supplier.contactPerson && <p>联系人：{supplier.contactPerson}</p>}
-                      {supplier.email && <p>邮箱：{supplier.email}</p>}
-                      {supplier.phone && <p>电话：{supplier.phone}</p>}
-                      <p className="text-primary">已映射物料：{getMappingCount(supplier.id)} 个</p>
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleDeleteSupplier(supplier.id)}
-                    >
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
+            <div className="border rounded-md">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>供应商名称</TableHead>
+                    <TableHead>联系人</TableHead>
+                    <TableHead>邮箱</TableHead>
+                    <TableHead>电话</TableHead>
+                    <TableHead className="text-right">操作</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {suppliers.map((supplier) => (
+                    <TableRow key={supplier.id}>
+                      <TableCell className="font-medium">{supplier.supplierName}</TableCell>
+                      <TableCell>{supplier.contactPerson || '-'}</TableCell>
+                      <TableCell>{supplier.email || '-'}</TableCell>
+                      <TableCell>{supplier.phone || '-'}</TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleDeleteSupplier(supplier.id, supplier.supplierName)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </div>
           ) : (
             <div className="text-center py-8 text-muted-foreground flex flex-col items-center gap-2">
@@ -286,74 +314,61 @@ export default function SupplierManagement({ onMappingComplete }: SupplierManage
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Percent className="h-5 w-5" />
-            物料份额分配
-          </CardTitle>
-          <CardDescription>为每个物料分配多个供应商及其份额</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {mappingsLoading ? (
-            <div className="text-center py-8 text-muted-foreground">加载中...</div>
-          ) : mappings && mappings.length > 0 ? (
-            <div className="space-y-2">
-              {/* 按物料分组显示 */}
-              {Array.from(
-                mappings.reduce((map, m) => {
-                  if (!map.has(m.materialCode)) {
-                    map.set(m.materialCode, []);
-                  }
-                  map.get(m.materialCode)!.push(m);
-                  return map;
-                }, new Map<string, typeof mappings>())
-              ).map(([materialCode, materialMappings]) => (
-                <div
-                  key={materialCode}
-                  className="p-4 border rounded-lg hover:bg-accent transition-colors"
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <div>
-                      <p className="font-medium">{materialCode}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {materialMappings.length} 个供应商
-                      </p>
-                    </div>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => {
-                        setSelectedMaterial({ code: materialCode, name: materialCode });
-                        setShareDialogOpen(true);
-                      }}
-                    >
-                      <Edit className="h-4 w-4 mr-2" />
-                      编辑份额
-                    </Button>
-                  </div>
-                  <div className="space-y-1">
-                    {materialMappings.map((m) => (
-                      <div key={m.id} className="flex items-center justify-between text-sm">
-                        <span>{m.supplier?.supplierName || '未知供应商'}</span>
-                        <span className="font-medium text-primary">
-                          {parseFloat(m.sharePercentage || "100").toFixed(1)}%
-                        </span>
-                      </div>
+      {/* 物料份额分配（仅显示多供应商物料） */}
+      {multiSupplierMaterials.length > 0 && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Percent className="h-5 w-5" />
+              <CardTitle>物料份额分配</CardTitle>
+            </div>
+            <CardDescription>
+              为有多个供应商的物料配置份额及优先级
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {mappingsLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <AlertCircle className="h-6 w-6 animate-spin" />
+              </div>
+            ) : (
+              <div className="border rounded-md">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>物料料号</TableHead>
+                      <TableHead>物料名称</TableHead>
+                      <TableHead>供应商数量</TableHead>
+                      <TableHead className="text-right">操作</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {multiSupplierMaterials.map((group) => (
+                      <TableRow key={group.materialCode}>
+                        <TableCell className="font-medium">{group.materialCode}</TableCell>
+                        <TableCell>{group.materialName}</TableCell>
+                        <TableCell>{group.suppliers.length} 家</TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleEditShare(group.materialCode, group.materialName)}
+                          >
+                            <Edit className="h-4 w-4 mr-2" />
+                            编辑份额
+                          </Button>
+                        </TableCell>
+                      </TableRow>
                     ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-8 text-muted-foreground flex flex-col items-center gap-2">
-              <AlertCircle className="h-8 w-8" />
-              <p>暂无映射，请先上传映射表</p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
+      {/* 份额分配弹窗 */}
       {selectedMaterial && (
         <ShareAllocationDialog
           open={shareDialogOpen}
@@ -362,16 +377,10 @@ export default function SupplierManagement({ onMappingComplete }: SupplierManage
           materialName={selectedMaterial.name}
           onSuccess={() => {
             utils.mapping.list.invalidate();
+            toast.success('份额分配已更新');
           }}
         />
       )}
-
-      <PurchaseOrderImport
-        onImportComplete={() => {
-          utils.supplier.list.invalidate();
-          utils.mapping.list.invalidate();
-        }}
-      />
     </div>
   );
 }
