@@ -350,6 +350,21 @@ export async function createEmailSendLog(log: InsertEmailSendLog) {
   return result[0].insertId;
 }
 
+export async function updateEmailSendLog(
+  logId: number,
+  data: { subject?: string; content?: string }
+) {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  await db
+    .update(emailSendLogs)
+    .set(data)
+    .where(eq(emailSendLogs.id, logId));
+}
+
 export async function updateEmailSendLogStatus(
   logId: number,
   status: "sent" | "failed",

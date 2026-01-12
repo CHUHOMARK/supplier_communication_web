@@ -609,23 +609,48 @@ export const appRouter = router({
           }
         }
         
-        // 重新生成邮件内容（包含Excel附件）
-        const emailContent = await generateSupplierEmail(
-          supplier,
-          materials,
-          plan.planStartDate,
-          plan.planEndDate
-        );
-        
-        // 创建发送记录
+        // 创建发送记录（先创建以获取logId）
         const logId = await db.createEmailSendLog({
           userId: ctx.user.id,
           planId: input.planId,
           supplierId: input.supplierId,
           recipientEmail: input.recipientEmail,
+          subject: input.subject,
+          content: input.content,
+          status: "pending",
+        });
+
+        // 创建供应商确认记录并生成确认链接
+        const { generateConfirmToken, calculateExpiryDate, generateConfirmationUrl } = await import('./confirmationService');
+        const token = generateConfirmToken();
+        const expiresAt = calculateExpiryDate(30);
+        
+        await db.createSupplierConfirmation({
+          userId: ctx.user.id,
+          planId: input.planId,
+          supplierId: input.supplierId,
+          emailLogId: Number(logId),
+          confirmToken: token,
+          expiresAt,
+        });
+        
+        // 生成确认链接URL
+        const confirmUrl = generateConfirmationUrl(token);
+        
+        // 重新生成邮件内容（包含Excel附件和确认链接）
+        const emailContent = await generateSupplierEmail(
+          supplier,
+          materials,
+          plan.planStartDate,
+          plan.planEndDate,
+          "贵司",
+          confirmUrl
+        );
+        
+        // 更新发送记录的邮件内容
+        await db.updateEmailSendLog(Number(logId), {
           subject: emailContent.subject,
           content: emailContent.body,
-          status: "pending",
         });
 
         // 发送邮件（带附件）
@@ -666,30 +691,12 @@ export const appRouter = router({
         const results = [];
 
         for (const email of input.emails) {
-          // 创建发送记录
-          const logId = await db.createEmailSendLog({
-            userId: ctx.user.id,
-            planId: input.planId,
-            supplierId: email.supplierId,
-            recipientEmail: email.recipientEmail,
-            subject: email.subject,
-            content: email.content,
-            status: "pending",
-          });
-
           // 发送邮件
           const result = await sendEmail({
             to: email.recipientEmail,
             subject: email.subject,
             html: email.content,
           });
-
-          // 更新发送状态
-          await db.updateEmailSendLogStatus(
-            Number(logId),
-            result.success ? "sent" : "failed",
-            result.error
-          );
 
           results.push({
             supplierId: email.supplierId,
@@ -872,7 +879,21 @@ export const appRouter = router({
         // 获取关联的供应商和物料计划信息
         const supplier = await db.getSupplierById(confirmation.supplierId);
         const plan = await db.getMaterialPlanById(confirmation.planId);
-        const items = plan ? await db.getMaterialItemsByPlanId(plan.id) : [];
+        const allItems = plan ? await db.getMaterialItemsByPlanId(plan.id) : [];
+        
+        // 获取该供应商的物料映射
+        const mappings = await db.getMaterialSupplierMappingsByUserId(confirmation.userId);
+        
+        // 筛选出该供应商负责的物料
+        const supplierMaterialCodes = new Set(
+          mappings
+            .filter(m => m.supplierId === confirmation.supplierId)
+            .map(m => m.materialCode)
+        );
+        
+        const items = allItems.filter(item => 
+          supplierMaterialCodes.has(item.materialCode)
+        );
 
         return {
           confirmation,

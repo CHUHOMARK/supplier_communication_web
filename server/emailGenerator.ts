@@ -34,7 +34,8 @@ export async function generateSupplierEmail(
   materials: Array<MaterialWithSchedule>,
   planStartDate: string,
   planEndDate: string,
-  companyName: string = "贵司"
+  companyName: string = "贵司",
+  confirmationUrl?: string
 ): Promise<EmailContent> {
   const month = planStartDate.split('-')[1];
   
@@ -149,10 +150,16 @@ export async function generateSupplierEmail(
   <p>您好！</p>
   <p>根据我司最新的生产安排，现向您发送贵司负责供应的物料来货计划详情。<strong>请查收附件中的Excel表格</strong>，其中包含物料清单及各日期来货数量。</p>
   <p><strong>计划周期：</strong>${planStartDate} - ${planEndDate}</p>
+  ${confirmationUrl ? `
+  <p style="margin: 20px 0; padding: 15px; background-color: #e8f5e9; border-left: 4px solid #4caf50; border-radius: 4px;">
+    <strong>点击下方链接确认交期：</strong><br>
+    <a href="${confirmationUrl}" style="color: #1976d2; font-size: 16px; font-weight: bold;">${confirmationUrl}</a>
+  </p>
+  ` : ''}
   <p><strong>重要提示：</strong></p>
   <ol>
-    <li>请在24小时内回复邮件确认收到，并告知是否能按计划执行。</li>
-    <li>如对计划有任何疑问或无法满足，请在回复中详细说明原因，以便我们及时调整。</li>
+    <li>请点击上方链接确认交期，或在24小时内回复邮件确认收到。</li>
+    <li>如对计划有任何疑问或无法满足，请在确认页面中详细说明原因，以便我们及时调整。</li>
     <li>请严格按照计划的到货日期安排发货，避免过早或延迟，以维持我司库存健康水平。</li>
     <li>附件Excel表格中各日期列显示的是该日期需要到货的数量，请提前安排生产和物流。</li>
   </ol>

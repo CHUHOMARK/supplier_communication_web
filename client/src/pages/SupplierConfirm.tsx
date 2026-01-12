@@ -118,28 +118,60 @@ export default function SupplierConfirm() {
           </CardHeader>
           <CardContent>
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b">
-                    <th className="text-left p-2">物料代码</th>
-                    <th className="text-left p-2">规格</th>
-                    <th className="text-right p-2">需求数量</th>
-                    <th className="text-right p-2">库存</th>
-                    <th className="text-right p-2">缺口</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {items.map((item) => (
-                    <tr key={item.id} className="border-b">
-                      <td className="p-2">{item.materialCode}</td>
-                      <td className="p-2">{item.materialSpec || "-"}</td>
-                      <td className="text-right p-2">{item.demand || "-"}</td>
-                      <td className="text-right p-2">{item.inventory || "-"}</td>
-                      <td className="text-right p-2">{item.shortage || "-"}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              {(() => {
+                // 收集所有日期
+                const allDates = new Set<string>();
+                items.forEach((item: any) => {
+                  if (item.dailySchedule && typeof item.dailySchedule === 'object') {
+                    Object.keys(item.dailySchedule).forEach(date => allDates.add(date));
+                  }
+                });
+                const sortedDates = Array.from(allDates).sort();
+                
+                // 格式化日期显示
+                const formatDate = (dateStr: string) => {
+                  try {
+                    const date = new Date(dateStr);
+                    return `${date.getMonth() + 1}月${date.getDate()}日`;
+                  } catch {
+                    return dateStr;
+                  }
+                };
+                
+                return (
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b bg-gray-50">
+                        <th className="text-left p-2 whitespace-nowrap">物料代码</th>
+                        <th className="text-left p-2 whitespace-nowrap">规格</th>
+                        <th className="text-right p-2 whitespace-nowrap">当前库存</th>
+                        <th className="text-right p-2 whitespace-nowrap">缺口</th>
+                        {sortedDates.map(date => (
+                          <th key={date} className="text-right p-2 whitespace-nowrap">{formatDate(date)}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {items.map((item: any) => {
+                        const schedule = item.dailySchedule || {};
+                        return (
+                          <tr key={item.id} className="border-b hover:bg-gray-50">
+                            <td className="p-2 whitespace-nowrap">{item.materialCode}</td>
+                            <td className="p-2">{item.materialSpec || "-"}</td>
+                            <td className="text-right p-2">{item.inventory || "-"}</td>
+                            <td className="text-right p-2">{item.shortage || "-"}</td>
+                            {sortedDates.map(date => (
+                              <td key={date} className="text-right p-2">
+                                {schedule[date] ? Number(schedule[date]).toFixed(0) : ""}
+                              </td>
+                            ))}
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                );
+              })()}
             </div>
           </CardContent>
         </Card>
