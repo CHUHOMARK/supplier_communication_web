@@ -692,7 +692,7 @@ export const appRouter = router({
 
         for (const email of input.emails) {
           // 发送邮件
-          const result = await sendEmail({
+          const emailResult = await sendEmail({
             to: email.recipientEmail,
             subject: email.subject,
             html: email.content,
@@ -700,8 +700,8 @@ export const appRouter = router({
 
           results.push({
             supplierId: email.supplierId,
-            success: result.success,
-            error: result.error,
+            success: emailResult.success,
+            error: emailResult.error,
           });
         }
 

@@ -27,6 +27,21 @@ export function isTokenExpired(expiresAt: Date): boolean {
  * 生成确认链接URL
  */
 export function generateConfirmationUrl(token: string, baseUrl?: string): string {
-  const base = baseUrl || process.env.VITE_APP_URL || "http://localhost:3000";
+  let base = baseUrl;
+  
+  if (!base) {
+    // Priority: passed baseUrl > VITE_FRONTEND_URL > VITE_APP_URL > APP_URL > localhost
+    if (process.env.VITE_FRONTEND_URL) {
+      base = process.env.VITE_FRONTEND_URL;
+    } else if (process.env.VITE_APP_URL) {
+      base = process.env.VITE_APP_URL;
+    } else if (process.env.APP_URL) {
+      base = process.env.APP_URL;
+    } else {
+      // Development default
+      base = "http://localhost:3000";
+    }
+  }
+  
   return `${base}/confirm/${token}`;
 }
