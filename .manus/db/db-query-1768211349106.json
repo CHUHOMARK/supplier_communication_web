@@ -1,0 +1,35 @@
+{
+  "query": "SELECT id, confirmToken, status FROM supplier_confirmations WHERE status = 'pending' ORDER BY id ASC LIMIT 5;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway03.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2oD5Rpux9cjqHPq.05f21cb26eb8 --database ZuNBVd6CLssbosJUyd9j6x --execute SELECT id, confirmToken, status FROM supplier_confirmations WHERE status = 'pending' ORDER BY id ASC LIMIT 5;",
+  "rows": [
+    {
+      "id": "1",
+      "confirmToken": "nGzW6QnKAbDa-ZDgWtB3p3JTK4ZijUIc",
+      "status": "pending"
+    },
+    {
+      "id": "2",
+      "confirmToken": "Ia4CQQVYOUmEwQrCoHaLXaAJkX-NdJVb",
+      "status": "pending"
+    },
+    {
+      "id": "3",
+      "confirmToken": "Ka3NYyoUDcl9zibV60TepLhWZA9prFlt",
+      "status": "pending"
+    },
+    {
+      "id": "4",
+      "confirmToken": "PNiYGX78kVkevfnk1X7yXmsW5F-iUgz3",
+      "status": "pending"
+    },
+    {
+      "id": "5",
+      "confirmToken": "cPaKlNDaZd7YOewIMBBQqCGkRHGBoks2",
+      "status": "pending"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tconfirmToken\tstatus\n1\tnGzW6QnKAbDa-ZDgWtB3p3JTK4ZijUIc\tpending\n2\tIa4CQQVYOUmEwQrCoHaLXaAJkX-NdJVb\tpending\n3\tKa3NYyoUDcl9zibV60TepLhWZA9prFlt\tpending\n4\tPNiYGX78kVkevfnk1X7yXmsW5F-iUgz3\tpending\n5\tcPaKlNDaZd7YOewIMBBQqCGkRHGBoks2\tpending\n",
+  "stderr": "",
+  "execution_time_ms": 1546
+}
