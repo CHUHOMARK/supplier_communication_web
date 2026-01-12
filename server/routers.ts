@@ -635,7 +635,11 @@ export const appRouter = router({
         });
         
         // 生成确认链接URL
-        const confirmUrl = generateConfirmationUrl(token);
+        // 从请求头中获取实际的域名
+        const protocol = ctx.req.headers['x-forwarded-proto'] || ctx.req.protocol || 'https';
+        const host = ctx.req.headers['x-forwarded-host'] || ctx.req.headers.host || 'localhost:3000';
+        const baseUrl = `${protocol}://${host}`;
+        const confirmUrl = generateConfirmationUrl(token, baseUrl);
         
         // 重新生成邮件内容（包含Excel附件和确认链接）
         const emailContent = await generateSupplierEmail(
