@@ -36,6 +36,11 @@ export default defineConfig({
       "localhost",
       "127.0.0.1",
     ],
+    hmr: {
+      protocol: "wss",
+      host: typeof process.env.HMR_HOST === "string" ? process.env.HMR_HOST : undefined,
+      port: 443,
+    },
     fs: {
       strict: true,
       deny: ["**/.*"],
