@@ -813,3 +813,29 @@ export async function getModificationsByPlanId(planId: number) {
 
   return result;
 }
+
+
+/**
+ * 根据ID获取确认记录及其关联的供应商信息
+ */
+export async function getConfirmationById(confirmationId: number) {
+  const db = await getDb();
+  if (!db) {
+    return null;
+  }
+
+  const result = await db
+    .select({
+      confirmation: supplierConfirmations,
+      supplier: suppliers,
+    })
+    .from(supplierConfirmations)
+    .leftJoin(
+      suppliers,
+      eq(supplierConfirmations.supplierId, suppliers.id)
+    )
+    .where(eq(supplierConfirmations.id, confirmationId))
+    .limit(1);
+  
+  return result[0] || null;
+}

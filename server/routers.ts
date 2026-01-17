@@ -7,6 +7,7 @@ import * as db from "./db";
 import { parseMaterialPlanExcel, parseSupplierMappingExcel } from "./excelParser";
 import { generateSupplierEmail, generateEmailCSV } from "./emailGenerator";
 import { TRPCError } from "@trpc/server";
+import { generateModificationExcel } from "./modificationExporter";
 
 export const appRouter = router({
   system: systemRouter,
@@ -1026,6 +1027,34 @@ export const appRouter = router({
       .query(async ({ input }) => {
         const modifications = await db.getModificationsByPlanId(input.planId);
         return modifications;
+      }),
+
+    // 导出修改历史为Excel（需要登录）
+    exportModifications: protectedProcedure
+      .input(z.object({
+        confirmationId: z.number(),
+      }))
+      .mutation(async ({ input }) => {
+        const modifications = await db.getModificationsByConfirmationId(input.confirmationId);
+        if (modifications.length === 0) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "没有找到修改记录",
+          });
+        }
+        
+        const confirmation = await db.getConfirmationById(input.confirmationId);
+        const supplierName = confirmation?.supplier?.supplierName || "供应商";
+        
+        const excelBuffer = await generateModificationExcel(modifications, supplierName);
+        const base64 = excelBuffer.toString("base64");
+        const fileName = `${supplierName}_修改历史_${new Date().toISOString().split("T")[0]}.xlsx`;
+        
+        return {
+          fileName,
+          base64,
+          mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        };
       }),
 
     // 创建确认记录（需要登录）
