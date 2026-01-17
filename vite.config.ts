@@ -38,8 +38,9 @@ export default defineConfig({
     ],
     hmr: {
       protocol: "wss",
-      host: typeof process.env.HMR_HOST === "string" ? process.env.HMR_HOST : undefined,
+      host: process.env.HMR_HOST || undefined,
       port: 443,
+      clientPort: 443,
     },
     fs: {
       strict: true,

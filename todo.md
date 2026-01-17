@@ -292,3 +292,10 @@
 - [x] 实现Excel文件格式设计（包含修改摘要和详细对比表格）
 - [x] 支持单个修改记录导出和批量导出
 - [x] 编写单元测试验证导出功能
+
+
+## Bug修复 - Vite HMR WebSocket连接失败
+
+- [x] 修复vite.config.ts中的HMR配置
+- [x] 添加clientPort配置确保WebSocket连接正确
+- [x] 验证修复结果，确认浏览器控制台无错误
