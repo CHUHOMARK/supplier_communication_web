@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Loader2, CheckCircle, XCircle, AlertCircle } from "lucide-react";
 
@@ -21,6 +22,8 @@ export default function SupplierConfirm() {
   const [notes, setNotes] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [editedSchedules, setEditedSchedules] = useState<Record<string, Record<string, number>>>({});
+  const [modificationReasons, setModificationReasons] = useState<Record<string, string>>({});
 
   const { data, isLoading, error } = trpc.confirmation.getByToken.useQuery(
     { token },
@@ -38,15 +41,53 @@ export default function SupplierConfirm() {
     },
   });
 
+  const submitModificationsMutation = trpc.confirmation.submitModifications.useMutation({
+    onSuccess: () => {
+      setIsSubmitted(true);
+      toast.success("修改提交成功");
+    },
+    onError: (error) => {
+      toast.error(`提交失败: ${error.message}`);
+      setIsSubmitting(false);
+    },
+  });
+
   const handleSubmit = async () => {
     if (!token) return;
 
     setIsSubmitting(true);
-    submitMutation.mutate({
-      token,
-      status,
-      supplierNotes: notes,
-    });
+
+    // 如果选择"修改交期"，需要提交修改的数据
+    if (status === "modified" && Object.keys(editedSchedules).length > 0) {
+      const modifications = Object.entries(editedSchedules).map(([materialCode, modifiedSchedule]) => ({
+        materialCode,
+        originalSchedule: data?.items.find((item: any) => item.materialCode === materialCode)?.dailySchedule || {},
+        modifiedSchedule,
+        modificationReason: modificationReasons[materialCode],
+      }));
+
+      submitModificationsMutation.mutate({
+        token,
+        modifications,
+      });
+    } else {
+      submitMutation.mutate({
+        token,
+        status,
+        supplierNotes: notes,
+      });
+    }
+  };
+
+  const handleScheduleChange = (materialCode: string, date: string, value: string) => {
+    const numValue = value === "" ? 0 : Number(value);
+    setEditedSchedules(prev => ({
+      ...prev,
+      [materialCode]: {
+        ...(prev[materialCode] || data?.items.find((item: any) => item.materialCode === materialCode)?.dailySchedule || {}),
+        [date]: numValue,
+      },
+    }));
   };
 
   if (isLoading) {
@@ -153,16 +194,26 @@ export default function SupplierConfirm() {
                     </thead>
                     <tbody>
                       {items.map((item: any) => {
-                        const schedule = item.dailySchedule || {};
+                        const schedule = editedSchedules[item.materialCode] || item.dailySchedule || {};
                         return (
-                          <tr key={item.id} className="border-b hover:bg-gray-50">
+                          <tr key={item.id} className={`border-b ${status === "modified" ? "hover:bg-blue-50" : "hover:bg-gray-50"}`}>
                             <td className="p-2 whitespace-nowrap">{item.materialCode}</td>
                             <td className="p-2">{item.materialSpec || "-"}</td>
                             <td className="text-right p-2">{item.inventory || "-"}</td>
                             <td className="text-right p-2">{item.shortage || "-"}</td>
                             {sortedDates.map(date => (
                               <td key={date} className="text-right p-2">
-                                {schedule[date] ? Number(schedule[date]).toFixed(0) : ""}
+                                {status === "modified" ? (
+                                  <Input
+                                    type="number"
+                                    value={schedule[date] || ""}
+                                    onChange={(e) => handleScheduleChange(item.materialCode, date, e.target.value)}
+                                    className="w-16 text-right h-8"
+                                    min="0"
+                                  />
+                                ) : (
+                                  <span>{schedule[date] ? Number(schedule[date]).toFixed(0) : ""}</span>
+                                )}
                               </td>
                             ))}
                           </tr>
@@ -220,6 +271,14 @@ export default function SupplierConfirm() {
                 </Label>
               </div>
             </RadioGroup>
+
+            {status === "modified" && (
+              <div className="bg-blue-50 border border-blue-200 rounded p-4">
+                <p className="text-sm text-blue-800">
+                  💡 提示：您可以在上方表格中直接编辑物料的交期数量。请在下方说明修改原因。
+                </p>
+              </div>
+            )}
 
             <div>
               <Label htmlFor="notes">备注说明</Label>

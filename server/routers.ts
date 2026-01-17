@@ -948,6 +948,59 @@ export const appRouter = router({
         };
       }),
 
+    // 供应商提交修改的交期数量（公开接口）
+    submitModifications: publicProcedure
+      .input(z.object({
+        token: z.string(),
+        modifications: z.array(z.object({
+          materialCode: z.string(),
+          originalSchedule: z.record(z.string(), z.number()),
+          modifiedSchedule: z.record(z.string(), z.number()),
+          modificationReason: z.string().optional(),
+        })),
+      }))
+      .mutation(async ({ input }) => {
+        const confirmation = await db.getConfirmationByToken(input.token);
+        
+        if (!confirmation) {
+          throw new TRPCError({
+            code: 'NOT_FOUND',
+            message: '确认记录不存在',
+          });
+        }
+
+        // 检查是否过期
+        const { isTokenExpired } = await import('./confirmationService');
+        if (isTokenExpired(confirmation.expiresAt)) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: '确认链接已过期',
+          });
+        }
+
+        // 保存所有修改历史
+        for (const mod of input.modifications) {
+          await db.saveConfirmationModification({
+            confirmationId: confirmation.id,
+            materialCode: mod.materialCode,
+            originalSchedule: mod.originalSchedule,
+            modifiedSchedule: mod.modifiedSchedule,
+            modificationReason: mod.modificationReason,
+          });
+        }
+
+        // 更新确认状态为modified
+        await db.updateConfirmationStatus(confirmation.id, {
+          status: 'modified',
+          confirmedAt: new Date(),
+        });
+
+        return {
+          success: true,
+          message: '修改提交成功',
+        };
+      }),
+
     // 获取物料计划的所有确认记录（需要登录）
     getByPlanId: protectedProcedure
       .input(z.object({
@@ -963,6 +1016,16 @@ export const appRouter = router({
       .query(async ({ ctx }) => {
         const stats = await db.getConfirmationStatsByUserId(ctx.user.id);
         return stats;
+      }),
+
+    // 获取修改历史记录（需要登录）
+    getModifications: protectedProcedure
+      .input(z.object({
+        planId: z.number(),
+      }))
+      .query(async ({ input }) => {
+        const modifications = await db.getModificationsByPlanId(input.planId);
+        return modifications;
       }),
 
     // 创建确认记录（需要登录）

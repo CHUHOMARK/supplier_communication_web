@@ -43,6 +43,13 @@
       "when": 1768026917775,
       "tag": "0005_broad_liz_osborn",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1768629399130,
+      "tag": "0006_bumpy_wiccan",
+      "breakpoints": true
     }
   ]
 }

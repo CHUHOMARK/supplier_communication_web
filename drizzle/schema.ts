@@ -170,3 +170,19 @@ export const generatedEmails = mysqlTable("generated_emails", {
 
 export type GeneratedEmail = typeof generatedEmails.$inferSelect;
 export type InsertGeneratedEmail = typeof generatedEmails.$inferInsert;
+
+/**
+ * 确认修改历史记录表（供应商修改交期数量的历史记录）
+ */
+export const confirmationModifications = mysqlTable("confirmation_modifications", {
+  id: int("id").autoincrement().primaryKey(),
+  confirmationId: int("confirmationId").notNull(), // 关联的确认记录ID
+  materialCode: varchar("materialCode", { length: 100 }).notNull(), // 物料代码
+  originalSchedule: json("originalSchedule").$type<Record<string, number>>().notNull(), // 原始交期数量
+  modifiedSchedule: json("modifiedSchedule").$type<Record<string, number>>().notNull(), // 修改后的交期数量
+  modificationReason: text("modificationReason"), // 修改原因
+  modifiedAt: timestamp("modifiedAt").defaultNow().notNull(), // 修改时间
+});
+
+export type ConfirmationModification = typeof confirmationModifications.$inferSelect;
+export type InsertConfirmationModification = typeof confirmationModifications.$inferInsert;

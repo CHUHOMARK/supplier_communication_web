@@ -11,12 +11,14 @@ import {
   shareChangeHistory,
   emailSendLogs,
   supplierConfirmations,
+  confirmationModifications,
   InsertMaterialPlan,
   InsertMaterialItem,
   InsertSupplier,
   InsertMaterialSupplierMapping,
   InsertGeneratedEmail,
   InsertEmailSendLog,
+  InsertConfirmationModification,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -745,4 +747,69 @@ export async function getMaterialMappingsByPlanId(userId: number, planId: number
     );
   
   return mappings;
+}
+
+
+/**
+ * 保存确认修改历史记录
+ */
+export async function saveConfirmationModification(data: InsertConfirmationModification) {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  const result = await db
+    .insert(confirmationModifications)
+    .values(data);
+  
+  return result;
+}
+
+/**
+ * 获取确认记录的所有修改历史
+ */
+export async function getModificationsByConfirmationId(confirmationId: number) {
+  const db = await getDb();
+  if (!db) {
+    return [];
+  }
+
+  const result = await db
+    .select()
+    .from(confirmationModifications)
+    .where(eq(confirmationModifications.confirmationId, confirmationId))
+    .orderBy(desc(confirmationModifications.modifiedAt));
+
+  return result;
+}
+
+/**
+ * 获取物料计划的所有修改历史（用于管理员查看）
+ */
+export async function getModificationsByPlanId(planId: number) {
+  const db = await getDb();
+  if (!db) {
+    return [];
+  }
+
+  const result = await db
+    .select({
+      modification: confirmationModifications,
+      confirmation: supplierConfirmations,
+      supplier: suppliers,
+    })
+    .from(confirmationModifications)
+    .leftJoin(
+      supplierConfirmations,
+      eq(confirmationModifications.confirmationId, supplierConfirmations.id)
+    )
+    .leftJoin(
+      suppliers,
+      eq(supplierConfirmations.supplierId, suppliers.id)
+    )
+    .where(eq(supplierConfirmations.planId, planId))
+    .orderBy(desc(confirmationModifications.modifiedAt));
+
+  return result;
 }
