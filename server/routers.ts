@@ -626,6 +626,15 @@ export const appRouter = router({
         const token = generateConfirmToken();
         const expiresAt = calculateExpiryDate(30);
         
+        // 检查是否已存在该计划和供应商的确认记录
+        const existingConfirmation = await db.getExistingConfirmation(input.planId, input.supplierId);
+        if (existingConfirmation) {
+          throw new TRPCError({
+            code: 'CONFLICT',
+            message: '该供应商已有一条该计划的确认记录',
+          });
+        }
+
         await db.createSupplierConfirmation({
           userId: ctx.user.id,
           planId: input.planId,

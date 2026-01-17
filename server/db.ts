@@ -839,3 +839,19 @@ export async function getConfirmationById(confirmationId: number) {
   
   return result[0] || null;
 }
+
+/**
+ * 检查是否已存在该计划和供应商的确认记录
+ */
+export async function getExistingConfirmation(planId: number, supplierId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.select().from(supplierConfirmations)
+    .where(and(
+      eq(supplierConfirmations.planId, planId),
+      eq(supplierConfirmations.supplierId, supplierId)
+    ))
+    .limit(1);
+  
+  return result.length > 0 ? result[0] : null;
+}

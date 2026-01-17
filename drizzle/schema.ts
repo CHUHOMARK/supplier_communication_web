@@ -1,4 +1,4 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, json, decimal } from "drizzle-orm/mysql-core";
+import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, json, decimal, unique } from "drizzle-orm/mysql-core";
 
 /**
  * Core user table backing auth flow.
@@ -151,7 +151,9 @@ export const supplierConfirmations = mysqlTable("supplier_confirmations", {
   expiresAt: timestamp("expiresAt").notNull(), // 链接过期时间
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-});
+}, (table) => ({
+  uniquePlanSupplier: unique("unique_plan_supplier").on(table.planId, table.supplierId),
+}));
 
 export type SupplierConfirmation = typeof supplierConfirmations.$inferSelect;
 export type InsertSupplierConfirmation = typeof supplierConfirmations.$inferInsert;

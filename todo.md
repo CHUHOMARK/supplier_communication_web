@@ -299,3 +299,11 @@
 - [x] 修复vite.config.ts中的HMR配置
 - [x] 添加clientPort配置确保WebSocket连接正确
 - [x] 验证修复结果，确认浏览器控制台无错误
+
+
+## Bug修复 - 确认记录数据重复问题
+
+- [x] 清理数据库中的重复确认记录
+- [x] 在supplier_confirmations表添加唯一性约束（planId + supplierId）
+- [x] 修改创建确认记录的逻辑，检查是否已存在相同记录
+- [x] 编写单元测试验证防重复功能

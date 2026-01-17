@@ -1,0 +1,262 @@
+{
+  "query": "SELECT id, planId, supplierId, status, createdAt FROM supplier_confirmations ORDER BY planId, supplierId, createdAt DESC;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway03.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2oD5Rpux9cjqHPq.05f21cb26eb8 --database ZuNBVd6CLssbosJUyd9j6x --execute SELECT id, planId, supplierId, status, createdAt FROM supplier_confirmations ORDER BY planId, supplierId, createdAt DESC;",
+  "rows": [
+    {
+      "id": "30004",
+      "planId": "5",
+      "supplierId": "534",
+      "status": "pending",
+      "createdAt": "2026-01-12 10:06:02"
+    },
+    {
+      "id": "30003",
+      "planId": "5",
+      "supplierId": "534",
+      "status": "pending",
+      "createdAt": "2026-01-12 10:06:01"
+    },
+    {
+      "id": "2",
+      "planId": "5",
+      "supplierId": "534",
+      "status": "modified",
+      "createdAt": "2026-01-10 08:44:13"
+    },
+    {
+      "id": "30014",
+      "planId": "5",
+      "supplierId": "553",
+      "status": "modified",
+      "createdAt": "2026-01-12 10:27:55"
+    },
+    {
+      "id": "30013",
+      "planId": "5",
+      "supplierId": "553",
+      "status": "pending",
+      "createdAt": "2026-01-12 10:27:55"
+    },
+    {
+      "id": "30012",
+      "planId": "5",
+      "supplierId": "553",
+      "status": "pending",
+      "createdAt": "2026-01-12 10:24:21"
+    },
+    {
+      "id": "30011",
+      "planId": "5",
+      "supplierId": "553",
+      "status": "pending",
+      "createdAt": "2026-01-12 10:24:18"
+    },
+    {
+      "id": "30010",
+      "planId": "5",
+      "supplierId": "553",
+      "status": "pending",
+      "createdAt": "2026-01-12 10:20:11"
+    },
+    {
+      "id": "30009",
+      "planId": "5",
+      "supplierId": "553",
+      "status": "pending",
+      "createdAt": "2026-01-12 10:20:10"
+    },
+    {
+      "id": "30008",
+      "planId": "5",
+      "supplierId": "553",
+      "status": "pending",
+      "createdAt": "2026-01-12 10:16:46"
+    },
+    {
+      "id": "30007",
+      "planId": "5",
+      "supplierId": "553",
+      "status": "pending",
+      "createdAt": "2026-01-12 10:16:44"
+    },
+    {
+      "id": "30006",
+      "planId": "5",
+      "supplierId": "553",
+      "status": "pending",
+      "createdAt": "2026-01-12 10:11:25"
+    },
+    {
+      "id": "30005",
+      "planId": "5",
+      "supplierId": "553",
+      "status": "pending",
+      "createdAt": "2026-01-12 10:11:25"
+    },
+    {
+      "id": "30002",
+      "planId": "5",
+      "supplierId": "553",
+      "status": "pending",
+      "createdAt": "2026-01-12 09:58:35"
+    },
+    {
+      "id": "30001",
+      "planId": "5",
+      "supplierId": "553",
+      "status": "pending",
+      "createdAt": "2026-01-12 09:47:35"
+    },
+    {
+      "id": "12",
+      "planId": "5",
+      "supplierId": "553",
+      "status": "pending",
+      "createdAt": "2026-01-10 09:41:49"
+    },
+    {
+      "id": "11",
+      "planId": "5",
+      "supplierId": "553",
+      "status": "pending",
+      "createdAt": "2026-01-10 09:37:54"
+    },
+    {
+      "id": "10",
+      "planId": "5",
+      "supplierId": "553",
+      "status": "partial",
+      "createdAt": "2026-01-10 09:26:40"
+    },
+    {
+      "id": "9",
+      "planId": "5",
+      "supplierId": "553",
+      "status": "pending",
+      "createdAt": "2026-01-10 09:18:00"
+    },
+    {
+      "id": "8",
+      "planId": "5",
+      "supplierId": "553",
+      "status": "pending",
+      "createdAt": "2026-01-10 09:06:40"
+    },
+    {
+      "id": "7",
+      "planId": "5",
+      "supplierId": "553",
+      "status": "pending",
+      "createdAt": "2026-01-10 09:06:26"
+    },
+    {
+      "id": "6",
+      "planId": "5",
+      "supplierId": "553",
+      "status": "pending",
+      "createdAt": "2026-01-10 08:58:10"
+    },
+    {
+      "id": "5",
+      "planId": "5",
+      "supplierId": "553",
+      "status": "pending",
+      "createdAt": "2026-01-10 08:57:55"
+    },
+    {
+      "id": "4",
+      "planId": "5",
+      "supplierId": "553",
+      "status": "pending",
+      "createdAt": "2026-01-10 08:51:49"
+    },
+    {
+      "id": "3",
+      "planId": "5",
+      "supplierId": "553",
+      "status": "rejected",
+      "createdAt": "2026-01-10 08:45:44"
+    },
+    {
+      "id": "1",
+      "planId": "5",
+      "supplierId": "553",
+      "status": "confirmed",
+      "createdAt": "2026-01-10 08:32:06"
+    },
+    {
+      "id": "90006",
+      "planId": "30001",
+      "supplierId": "30047",
+      "status": "modified",
+      "createdAt": "2026-01-17 06:26:26"
+    },
+    {
+      "id": "90005",
+      "planId": "30001",
+      "supplierId": "30047",
+      "status": "pending",
+      "createdAt": "2026-01-17 06:26:26"
+    },
+    {
+      "id": "90004",
+      "planId": "30001",
+      "supplierId": "30047",
+      "status": "modified",
+      "createdAt": "2026-01-17 06:03:43"
+    },
+    {
+      "id": "90003",
+      "planId": "30001",
+      "supplierId": "30047",
+      "status": "pending",
+      "createdAt": "2026-01-17 06:03:43"
+    },
+    {
+      "id": "90001",
+      "planId": "30001",
+      "supplierId": "30047",
+      "status": "pending",
+      "createdAt": "2026-01-17 05:50:47"
+    },
+    {
+      "id": "90002",
+      "planId": "30001",
+      "supplierId": "30047",
+      "status": "pending",
+      "createdAt": "2026-01-17 05:50:47"
+    },
+    {
+      "id": "60002",
+      "planId": "30001",
+      "supplierId": "30047",
+      "status": "pending",
+      "createdAt": "2026-01-13 01:17:38"
+    },
+    {
+      "id": "60001",
+      "planId": "30001",
+      "supplierId": "30047",
+      "status": "pending",
+      "createdAt": "2026-01-13 01:17:38"
+    },
+    {
+      "id": "30016",
+      "planId": "30001",
+      "supplierId": "30047",
+      "status": "confirmed",
+      "createdAt": "2026-01-12 10:58:18"
+    },
+    {
+      "id": "30015",
+      "planId": "30001",
+      "supplierId": "30047",
+      "status": "pending",
+      "createdAt": "2026-01-12 10:58:18"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tplanId\tsupplierId\tstatus\tcreatedAt\n30004\t5\t534\tpending\t2026-01-12 10:06:02\n30003\t5\t534\tpending\t2026-01-12 10:06:01\n2\t5\t534\tmodified\t2026-01-10 08:44:13\n30014\t5\t553\tmodified\t2026-01-12 10:27:55\n30013\t5\t553\tpending\t2026-01-12 10:27:55\n30012\t5\t553\tpending\t2026-01-12 10:24:21\n30011\t5\t553\tpending\t2026-01-12 10:24:18\n30010\t5\t553\tpending\t2026-01-12 10:20:11\n30009\t5\t553\tpending\t2026-01-12 10:20:10\n30008\t5\t553\tpending\t2026-01-12 10:16:46\n30007\t5\t553\tpending\t2026-01-12 10:16:44\n30006\t5\t553\tpending\t2026-01-12 10:11:25\n30005\t5\t553\tpending\t2026-01-12 10:11:25\n30002\t5\t553\tpending\t2026-01-12 09:58:35\n30001\t5\t553\tpending\t2026-01-12 09:47:35\n12\t5\t553\tpending\t2026-01-10 09:41:49\n11\t5\t553\tpending\t2026-01-10 09:37:54\n10\t5\t553\tpartial\t2026-01-10 09:26:40\n9\t5\t553\tpending\t2026-01-10 09:18:00\n8\t5\t553\tpending\t2026-01-10 09:06:40\n7\t5\t553\tpending\t2026-01-10 09:06:26\n6\t5\t553\tpending\t2026-01-10 08:58:10\n5\t5\t553\tpending\t2026-01-10 08:57:55\n4\t5\t553\tpending\t2026-01-10 08:51:49\n3\t5\t553\trejected\t2026-01-10 08:45:44\n1\t5\t553\tconfirmed\t2026-01-10 08:32:06\n90006\t30001\t30047\tmodified\t2026-01-17 06:26:26\n90005\t30001\t30047\tpending\t2026-01-17 06:26:26\n90004\t30001\t30047\tmodified\t2026-01-17 06:03:43\n90003\t30001\t30047\tpending\t2026-01-17 06:03:43\n90001\t30001\t30047\tpending\t2026-01-17 05:50:47\n90002\t30001\t30047\tpending\t2026-01-17 05:50:47\n60002\t30001\t30047\tpending\t2026-01-13 01:17:38\n60001\t30001\t30047\tpending\t2026-01-13 01:17:38\n30016\t30001\t30047\tconfirmed\t2026-01-12 10:58:18\n30015\t30001\t30047\tpending\t2026-01-12 10:58:18\n",
+  "stderr": "",
+  "execution_time_ms": 1829
+}
