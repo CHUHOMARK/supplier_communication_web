@@ -1,4 +1,4 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, json, decimal, unique } from "drizzle-orm/mysql-core";
+import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, json, decimal, unique, index } from "drizzle-orm/mysql-core";
 
 /**
  * Core user table backing auth flow.
@@ -92,7 +92,11 @@ export const materialSupplierMappings = mysqlTable("material_supplier_mappings",
   notes: text("notes"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-});
+}, (table) => ({
+  userIdIdx: index("idx_user_id").on(table.userId),
+  materialCodeIdx: index("idx_material_code").on(table.materialCode),
+  userMaterialIdx: index("idx_user_material").on(table.userId, table.materialCode),
+}));
 
 export type MaterialSupplierMapping = typeof materialSupplierMappings.$inferSelect;
 export type InsertMaterialSupplierMapping = typeof materialSupplierMappings.$inferInsert;

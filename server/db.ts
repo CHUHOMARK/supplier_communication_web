@@ -212,6 +212,72 @@ export async function getMaterialSupplierMappingsByUserId(userId: number) {
   return await db.select().from(materialSupplierMappings).where(eq(materialSupplierMappings.userId, userId));
 }
 
+/**
+ * 分页获取物料供应商映射（按物料代码分组）
+ * @param userId 用户ID
+ * @param page 页码（从0开始）
+ * @param pageSize 每页数量
+ * @returns { materials: 物料列表, total: 总物料数, page: 当前页, pageSize: 每页数量 }
+ */
+export async function getMaterialSupplierMappingsPaginated(
+  userId: number,
+  page: number = 0,
+  pageSize: number = 50
+) {
+  const db = await getDb();
+  if (!db) return { materials: [], total: 0, page, pageSize };
+  
+  // 获取所有映射
+  const allMappings = await db
+    .select()
+    .from(materialSupplierMappings)
+    .where(eq(materialSupplierMappings.userId, userId));
+  
+  // 按物料代码分组
+  const materialGroups = new Map<string, typeof allMappings>();
+  for (const mapping of allMappings) {
+    const key = mapping.materialCode;
+    if (!materialGroups.has(key)) {
+      materialGroups.set(key, []);
+    }
+    materialGroups.get(key)!.push(mapping);
+  }
+  
+  // 转换为物料列表
+  const materials = Array.from(materialGroups.entries()).map(([code, mappings]) => ({
+    materialCode: code,
+    supplierCount: mappings.length,
+    mappings,
+  }));
+  
+  const total = materials.length;
+  const start = page * pageSize;
+  const end = start + pageSize;
+  const paginatedMaterials = materials.slice(start, end);
+  
+  return {
+    materials: paginatedMaterials,
+    total,
+    page,
+    pageSize,
+  };
+}
+
+/**
+ * 获取物料的所有供应商映射（不分页，用于编辑对话框）
+ */
+export async function getMaterialSupplierMappingsByMaterialCodeFast(userId: number, materialCode: string) {
+  const db = await getDb();
+  if (!db) return [];
+  
+  return await db.select().from(materialSupplierMappings).where(
+    and(
+      eq(materialSupplierMappings.userId, userId),
+      eq(materialSupplierMappings.materialCode, materialCode)
+    )
+  );
+}
+
 export async function updateMaterialSupplierMapping(id: number, mapping: Partial<InsertMaterialSupplierMapping>) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");

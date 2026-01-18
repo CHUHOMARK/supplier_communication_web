@@ -320,6 +320,38 @@ export const appRouter = router({
       }));
     }),
     
+    // 分页获取物料列表（优化版）
+    listPaginated: protectedProcedure
+      .input(z.object({
+        page: z.number().int().min(0).default(0),
+        pageSize: z.number().int().min(1).max(100).default(50),
+      }))
+      .query(async ({ ctx, input }) => {
+        const result = await db.getMaterialSupplierMappingsPaginated(
+          ctx.user.id,
+          input.page,
+          input.pageSize
+        );
+        
+        const suppliers = await db.getSuppliersByUserId(ctx.user.id);
+        const supplierMap = new Map(suppliers.map(s => [s.id, s]));
+        
+        const materialsWithSuppliers = result.materials.map(material => ({
+          ...material,
+          mappings: material.mappings.map(m => ({
+            ...m,
+            supplier: supplierMap.get(m.supplierId),
+          })),
+        }));
+        
+        return {
+          materials: materialsWithSuppliers,
+          total: result.total,
+          page: result.page,
+          pageSize: result.pageSize,
+        };
+      }),
+    
     // 创建或更新映射（支持多供应商）
     upsert: protectedProcedure
       .input(z.object({
