@@ -24,6 +24,7 @@ export default function Settings() {
     resetMappings: false,
     resetEmails: false,
     resetEmailLogs: false,
+    resetConfirmations: false,
   });
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
 
@@ -40,6 +41,7 @@ export default function Settings() {
         resetMappings: false,
         resetEmails: false,
         resetEmailLogs: false,
+        resetConfirmations: false,
       });
       utils.dataReset.getStats.invalidate();
     },
@@ -181,6 +183,19 @@ export default function Settings() {
                   邮件发送记录（{stats?.emailLogs || 0} 条）
                 </Label>
               </div>
+
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="resetConfirmations"
+                  checked={resetOptions.resetConfirmations}
+                  onCheckedChange={(checked) =>
+                    setResetOptions({ ...resetOptions, resetConfirmations: checked as boolean })
+                  }
+                />
+                <Label htmlFor="resetConfirmations" className="cursor-pointer">
+                  供应商确认监控数据（确认记录和修改历史）
+                </Label>
+              </div>
             </div>
           </div>
 
@@ -227,6 +242,7 @@ export default function Settings() {
                 {resetOptions.resetMappings && <li>物料-供应商映射关系</li>}
                 {resetOptions.resetEmails && <li>生成的邮件内容</li>}
                 {resetOptions.resetEmailLogs && <li>邮件发送记录</li>}
+                {resetOptions.resetConfirmations && <li>供应商确认监控数据</li>}
               </ul>
             </AlertDialogDescription>
           </AlertDialogHeader>
