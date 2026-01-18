@@ -674,7 +674,8 @@ export const appRouter = router({
           emailLogId: Number(logId),
           confirmToken: token,
           expiresAt,
-        });
+          status: 'pending', // 显式指定初始状态
+        } as any);
         
         // 生成确认链接URL
         // 从请求头中获取实际的域名

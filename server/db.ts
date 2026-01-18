@@ -607,6 +607,7 @@ export async function createSupplierConfirmation(data: {
   emailLogId?: number;
   confirmToken: string;
   expiresAt: Date;
+  status?: 'pending' | 'confirmed' | 'partial' | 'rejected' | 'modified';
 }) {
   const db = await getDb();
   if (!db) {
