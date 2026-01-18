@@ -1,0 +1,19 @@
+{
+  "query": "SELECT \n  COUNT(*) as total,\n  SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending,\n  SUM(CASE WHEN status = 'confirmed' THEN 1 ELSE 0 END) as confirmed,\n  SUM(CASE WHEN status = 'partial' THEN 1 ELSE 0 END) as partial,\n  SUM(CASE WHEN status = 'rejected' THEN 1 ELSE 0 END) as rejected,\n  SUM(CASE WHEN status = 'modified' THEN 1 ELSE 0 END) as modified,\n  SUM(CASE WHEN status IS NULL THEN 1 ELSE 0 END) as null_count\nFROM supplier_confirmations;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway03.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2oD5Rpux9cjqHPq.05f21cb26eb8 --database ZuNBVd6CLssbosJUyd9j6x --execute SELECT \n  COUNT(*) as total,\n  SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending,\n  SUM(CASE WHEN status = 'confirmed' THEN 1 ELSE 0 END) as confirmed,\n  SUM(CASE WHEN status = 'partial' THEN 1 ELSE 0 END) as partial,\n  SUM(CASE WHEN status = 'rejected' THEN 1 ELSE 0 END) as rejected,\n  SUM(CASE WHEN status = 'modified' THEN 1 ELSE 0 END) as modified,\n  SUM(CASE WHEN status IS NULL THEN 1 ELSE 0 END) as null_count\nFROM supplier_confirmations;",
+  "rows": [
+    {
+      "total": "11",
+      "pending": "8",
+      "confirmed": "0",
+      "partial": "0",
+      "rejected": "0",
+      "modified": "3",
+      "null_count": "0"
+    }
+  ],
+  "messages": [],
+  "stdout": "total\tpending\tconfirmed\tpartial\trejected\tmodified\tnull_count\n11\t8\t0\t0\t0\t3\t0\n",
+  "stderr": "",
+  "execution_time_ms": 1511
+}

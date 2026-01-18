@@ -342,3 +342,11 @@
 - [x] 检查createSupplierConfirmation函数的状态字段
 - [x] 修复确认记录创建时的默认状态
 - [x] 验证初始化阶段的确认状态统计正硫计正确
+
+
+## Bug修复 - 数据库历史数据status为null
+
+- [x] 创建数据修复脚本，修复所有status为null的确认记录
+- [x] 执行修复脚本，将null状态更新为'pending'
+- [x] 验证修复后的监控面板数据准硫性
+- [x] 确保后续新创建的记录都有正硫的status值
