@@ -923,3 +923,40 @@ export async function getExistingConfirmation(planId: number, supplierId: number
   
   return result.length > 0 ? result[0] : null;
 }
+
+
+/**
+ * 重置所有确认记录
+ */
+export async function resetSupplierConfirmations() {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  await db.delete(supplierConfirmations);
+}
+
+/**
+ * 重置所有邮件发送记录
+ */
+export async function resetEmailSendLogs() {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  await db.delete(emailSendLogs);
+}
+
+/**
+ * 重置所有生成的邮件
+ */
+export async function resetGeneratedEmails() {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  await db.delete(generatedEmails);
+}

@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { notifyOwner } from "./notification";
 import { adminProcedure, publicProcedure, router } from "./trpc";
+import * as db from "../db";
 
 export const systemRouter = router({
   health: publicProcedure
@@ -25,5 +26,33 @@ export const systemRouter = router({
       return {
         success: delivered,
       } as const;
+    }),
+
+  resetData: adminProcedure
+    .input(
+      z.object({
+        confirmed: z.boolean(),
+      })
+    )
+    .mutation(async ({ input }) => {
+      if (!input.confirmed) {
+        throw new Error('Data reset must be confirmed');
+      }
+
+      try {
+        await db.resetSupplierConfirmations();
+        await db.resetEmailSendLogs();
+        await db.resetGeneratedEmails();
+
+        return {
+          success: true,
+          message: 'Data reset successfully',
+        };
+      } catch (error) {
+        return {
+          success: false,
+          message: error instanceof Error ? error.message : 'Data reset failed',
+        };
+      }
     }),
 });
