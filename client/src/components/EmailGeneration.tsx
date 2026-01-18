@@ -39,8 +39,6 @@ export default function EmailGeneration() {
     { enabled: false }
   );
 
-  const createConfirmationMutation = trpc.confirmation.create.useMutation();
-
   const sendEmailMutation = trpc.email.send.useMutation({
     onSuccess: () => {
       toast.success('邮件发送成功');
@@ -251,21 +249,14 @@ export default function EmailGeneration() {
                             toast.error('该供应商未设置邮箱，请先在供应商管理页面添加邮箱');
                             return;
                           }
-                        // 发送邮件
-                        sendEmailMutation.mutate({
-                          planId: Number(selectedPlanId),
-                          supplierId: email.supplierId,
-                          recipientEmail: email.supplier.email,
-                          subject: email.emailSubject,
-                          content: email.emailBody,
-                        });
-                        
-                        // 创建确认记录
-                        createConfirmationMutation.mutate({
-                          planId: Number(selectedPlanId),
-                          supplierId: email.supplierId,
-                          expiryDays: 30,
-                        });
+                          // 发送邮件（后端会自动创建确认记录）
+                          sendEmailMutation.mutate({
+                            planId: Number(selectedPlanId),
+                            supplierId: email.supplierId,
+                            recipientEmail: email.supplier.email,
+                            subject: email.emailSubject,
+                            content: email.emailBody,
+                          });
                         }}
                         disabled={!email.supplier?.email || sendEmailMutation.isPending}
                         title={!email.supplier?.email ? '该供应商未设置邮箱' : ''}
