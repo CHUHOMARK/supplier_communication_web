@@ -711,11 +711,12 @@ export async function getConfirmationStatsByUserId(userId: number) {
   };
 
   result.forEach((record) => {
-    if (record.status === "pending") stats.pending++;
-    else if (record.status === "confirmed") stats.confirmed++;
-    else if (record.status === "partial") stats.partial++;
-    else if (record.status === "rejected") stats.rejected++;
-    else if (record.status === "modified") stats.modified++;
+    const status = record.status || "pending"; // 默认为pending
+    if (status === "pending") stats.pending++;
+    else if (status === "confirmed") stats.confirmed++;
+    else if (status === "partial") stats.partial++;
+    else if (status === "rejected") stats.rejected++;
+    else if (status === "modified") stats.modified++;
   });
 
   return stats;
