@@ -489,6 +489,7 @@ export async function resetUserData(userId: number, options: {
   resetMappings?: boolean;
   resetEmails?: boolean;
   resetEmailLogs?: boolean;
+  resetConfirmations?: boolean;
 }) {
   const db = await getDb();
   if (!db) {
@@ -548,6 +549,12 @@ export async function resetUserData(userId: number, options: {
   if (options.resetEmailLogs) {
     const result = await db.delete(emailSendLogs).where(eq(emailSendLogs.userId, userId));
     results.emailLogs = result[0].affectedRows;
+  }
+
+  // 重置供应商确认监控数据
+  if (options.resetConfirmations) {
+    const result = await db.delete(supplierConfirmations).where(eq(supplierConfirmations.userId, userId));
+    results.confirmations = result[0].affectedRows;
   }
 
   return results;
