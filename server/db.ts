@@ -489,6 +489,7 @@ export async function resetUserData(userId: number, options: {
   resetMappings?: boolean;
   resetEmails?: boolean;
   resetEmailLogs?: boolean;
+  resetConfirmations?: boolean;
 }) {
   const db = await getDb();
   if (!db) {
@@ -550,6 +551,12 @@ export async function resetUserData(userId: number, options: {
     results.emailLogs = result[0].affectedRows;
   }
 
+  // 重置供应商确认监控数据
+  if (options.resetConfirmations) {
+    const result = await db.delete(supplierConfirmations).where(eq(supplierConfirmations.userId, userId));
+    results.confirmations = result[0].affectedRows;
+  }
+
   return results;
 }
 
@@ -607,6 +614,7 @@ export async function createSupplierConfirmation(data: {
   emailLogId?: number;
   confirmToken: string;
   expiresAt: Date;
+  status?: 'pending' | 'confirmed' | 'partial' | 'rejected' | 'modified';
 }) {
   const db = await getDb();
   if (!db) {
@@ -921,4 +929,41 @@ export async function getExistingConfirmation(planId: number, supplierId: number
     .limit(1);
   
   return result.length > 0 ? result[0] : null;
+}
+
+
+/**
+ * 重置所有确认记录
+ */
+export async function resetSupplierConfirmations() {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  await db.delete(supplierConfirmations);
+}
+
+/**
+ * 重置所有邮件发送记录
+ */
+export async function resetEmailSendLogs() {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  await db.delete(emailSendLogs);
+}
+
+/**
+ * 重置所有生成的邮件
+ */
+export async function resetGeneratedEmails() {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  await db.delete(generatedEmails);
 }

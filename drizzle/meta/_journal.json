@@ -64,6 +64,13 @@
       "when": 1768632436783,
       "tag": "0008_complete_karnak",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "5",
+      "when": 1768722808786,
+      "tag": "0009_workable_the_anarchist",
+      "breakpoints": true
     }
   ]
 }
