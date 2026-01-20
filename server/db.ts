@@ -967,3 +967,176 @@ export async function resetGeneratedEmails() {
 
   await db.delete(generatedEmails);
 }
+
+/**
+ * 获取计划中的所有物料及其供应商分配（分页）
+ */
+export async function getMaterialsWithSuppliersByPlan(
+  planId: number,
+  page: number = 0,
+  pageSize: number = 50
+) {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  // 获取该计划的所有物料项
+  const allMaterials = await db
+    .select()
+    .from(materialItems)
+    .where(eq(materialItems.planId, planId))
+    .orderBy(asc(materialItems.materialCode));
+
+  // 计算分页
+  const total = allMaterials.length;
+  const start = page * pageSize;
+  const end = start + pageSize;
+  const paginatedMaterials = allMaterials.slice(start, end);
+
+  // 为每个物料获取供应商分配信息
+  const materialsWithSuppliers = await Promise.all(
+    paginatedMaterials.map(async (material) => {
+      const mappings = await db
+        .select({
+          supplierId: materialSupplierMappings.supplierId,
+          sharePercentage: materialSupplierMappings.sharePercentage,
+          supplierName: suppliers.supplierName,
+        })
+        .from(materialSupplierMappings)
+        .leftJoin(
+          suppliers,
+          eq(materialSupplierMappings.supplierId, suppliers.id)
+        )
+        .where(eq(materialSupplierMappings.materialCode, material.materialCode))
+        .orderBy(desc(materialSupplierMappings.sharePercentage));
+
+      const totalSharePercentage = mappings.reduce(
+        (sum, m) => sum + Number(m.sharePercentage || 0),
+        0
+      );
+
+      return {
+        materialCode: material.materialCode,
+        materialName: material.materialName || "",
+        shortage: Number(material.shortage) || 0,
+        suppliers: mappings.map((m) => ({
+          supplierId: m.supplierId,
+          supplierName: m.supplierName || "",
+          sharePercentage: Number(m.sharePercentage) || 0,
+        })),
+        totalSharePercentage,
+      };
+    })
+  );
+
+  return {
+    total,
+    page,
+    pageSize,
+    materials: materialsWithSuppliers,
+  };
+}
+
+/**
+ * 获取单个物料的供应商分配详情
+ */
+export async function getMaterialSupplierAllocationDetail(
+  planId: number,
+  materialCode: string
+) {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  // 获取物料项信息
+  const material = await db
+    .select()
+    .from(materialItems)
+    .where(
+      and(
+        eq(materialItems.planId, planId),
+        eq(materialItems.materialCode, materialCode)
+      )
+    )
+    .limit(1)
+    .then((results) => results[0]);
+
+  if (!material) {
+    throw new Error(`Material ${materialCode} not found in plan ${planId}`);
+  }
+
+  // 获取供应商分配信息
+  const mappings = await db
+    .select({
+      supplierId: materialSupplierMappings.supplierId,
+      sharePercentage: materialSupplierMappings.sharePercentage,
+      supplierName: suppliers.supplierName,
+    })
+    .from(materialSupplierMappings)
+    .leftJoin(
+      suppliers,
+      eq(materialSupplierMappings.supplierId, suppliers.id)
+    )
+    .where(eq(materialSupplierMappings.materialCode, materialCode))
+    .orderBy(desc(materialSupplierMappings.sharePercentage));
+
+  const totalSharePercentage = mappings.reduce(
+    (sum, m) => sum + Number(m.sharePercentage || 0),
+    0
+  );
+
+  return {
+    materialCode: material.materialCode,
+    materialName: material.materialName || "",
+    shortage: Number(material.shortage) || 0,
+    suppliers: mappings.map((m) => ({
+      supplierId: m.supplierId,
+      supplierName: m.supplierName || "",
+      sharePercentage: Number(m.sharePercentage) || 0,
+    })),
+    totalSharePercentage,
+  };
+}
+
+/**
+ * 更新物料的供应商份额分配（删除旧的，插入新的）
+ */
+export async function updateMaterialSupplierShares(
+  materialCode: string,
+  shares: Array<{ supplierId: number; sharePercentage: number }>,
+  userId: number
+) {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  // 验证份额之和
+  const totalPercentage = shares.reduce((sum, s) => sum + s.sharePercentage, 0);
+  if (shares.length > 0 && Math.abs(totalPercentage - 100) > 0.01) {
+    throw new Error(
+      `Share percentages must sum to 100, got ${totalPercentage}`
+    );
+  }
+
+  // 删除该物料的所有现有映射
+  await db
+    .delete(materialSupplierMappings)
+    .where(eq(materialSupplierMappings.materialCode, materialCode));
+
+  // 插入新的映射记录
+  if (shares.length > 0) {
+    const newMappings = shares.map((s) => ({
+      userId,
+      materialCode,
+      supplierId: s.supplierId,
+      sharePercentage: s.sharePercentage.toString(),
+    }));
+
+    await db.insert(materialSupplierMappings).values(newMappings as any);
+  }
+
+  return shares.length;
+}
