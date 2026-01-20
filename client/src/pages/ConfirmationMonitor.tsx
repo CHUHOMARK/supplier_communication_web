@@ -68,7 +68,7 @@ export default function ConfirmationMonitor() {
 
       <div className="container py-8">
         {/* 统计卡片 */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
           <Card>
             <CardHeader className="pb-2">
               <CardDescription>总确认数</CardDescription>
@@ -85,6 +85,12 @@ export default function ConfirmationMonitor() {
             <CardHeader className="pb-2">
               <CardDescription>已确认</CardDescription>
               <CardTitle className="text-3xl text-green-600">{stats?.confirmed || 0}</CardTitle>
+            </CardHeader>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardDescription>部分确认</CardDescription>
+              <CardTitle className="text-3xl text-yellow-600">{stats?.partial || 0}</CardTitle>
             </CardHeader>
           </Card>
           <Card>

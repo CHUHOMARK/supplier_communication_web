@@ -1,1 +1,0 @@
-ALTER TABLE `supplier_confirmations` ADD CONSTRAINT `check_status_not_null` CHECK (status IS NOT NULL);

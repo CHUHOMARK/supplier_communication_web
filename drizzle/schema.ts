@@ -1,5 +1,4 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, json, decimal, unique, index, check } from "drizzle-orm/mysql-core";
-import { sql } from "drizzle-orm";
+import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, json, decimal, unique, index } from "drizzle-orm/mysql-core";
 
 /**
  * Core user table backing auth flow.
@@ -158,7 +157,6 @@ export const supplierConfirmations = mysqlTable("supplier_confirmations", {
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 }, (table) => ({
   uniquePlanSupplier: unique("unique_plan_supplier").on(table.planId, table.supplierId),
-  checkStatusNotNull: check("check_status_not_null", sql`status IS NOT NULL`),
 }));
 
 export type SupplierConfirmation = typeof supplierConfirmations.$inferSelect;

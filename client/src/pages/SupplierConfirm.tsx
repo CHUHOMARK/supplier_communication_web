@@ -18,7 +18,7 @@ export default function SupplierConfirm() {
   const [, params] = useRoute("/confirm/:token");
   const token = params?.token || "";
 
-  const [status, setStatus] = useState<"confirmed" | "rejected" | "modified">("confirmed");
+  const [status, setStatus] = useState<"confirmed" | "partial" | "rejected" | "modified">("confirmed");
   const [notes, setNotes] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -184,9 +184,9 @@ export default function SupplierConfirm() {
                     <thead>
                       <tr className="border-b bg-gray-50">
                         <th className="text-left p-2 whitespace-nowrap">物料代码</th>
-                        <th className="text-left p-2 whitespace-nowrap">物料名称</th>
                         <th className="text-left p-2 whitespace-nowrap">规格</th>
                         <th className="text-right p-2 whitespace-nowrap">当前库存</th>
+                        <th className="text-right p-2 whitespace-nowrap">缺口</th>
                         {sortedDates.map(date => (
                           <th key={date} className="text-right p-2 whitespace-nowrap">{formatDate(date)}</th>
                         ))}
@@ -198,9 +198,9 @@ export default function SupplierConfirm() {
                         return (
                           <tr key={item.id} className={`border-b ${status === "modified" ? "hover:bg-blue-50" : "hover:bg-gray-50"}`}>
                             <td className="p-2 whitespace-nowrap">{item.materialCode}</td>
-                            <td className="p-2">{item.materialName || "-"}</td>
                             <td className="p-2">{item.materialSpec || "-"}</td>
                             <td className="text-right p-2">{item.inventory || "-"}</td>
+                            <td className="text-right p-2">{item.shortage || "-"}</td>
                             {sortedDates.map(date => (
                               <td key={date} className="text-right p-2">
                                 {status === "modified" ? (
@@ -210,7 +210,6 @@ export default function SupplierConfirm() {
                                     onChange={(e) => handleScheduleChange(item.materialCode, date, e.target.value)}
                                     className="w-16 text-right h-8"
                                     min="0"
-                                    style={{ MozAppearance: 'textfield' }}
                                   />
                                 ) : (
                                   <span>{schedule[date] ? Number(schedule[date]).toFixed(0) : ""}</span>
@@ -244,7 +243,15 @@ export default function SupplierConfirm() {
                   </div>
                 </Label>
               </div>
-
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="partial" id="partial" />
+                <Label htmlFor="partial" className="cursor-pointer">
+                  <div>
+                    <div className="font-medium">部分确认</div>
+                    <div className="text-sm text-gray-500">部分物料可以按时交付，部分需要调整</div>
+                  </div>
+                </Label>
+              </div>
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="modified" id="modified" />
                 <Label htmlFor="modified" className="cursor-pointer">
@@ -270,13 +277,6 @@ export default function SupplierConfirm() {
                 <p className="text-sm text-blue-800">
                   💡 提示：您可以在上方表格中直接编辑物料的交期数量。请在下方说明修改原因。
                 </p>
-                <style>{`
-                  input[type="number"]::-webkit-outer-spin-button,
-                  input[type="number"]::-webkit-inner-spin-button {
-                    -webkit-appearance: none;
-                    margin: 0;
-                  }
-                `}</style>
               </div>
             )}
 
