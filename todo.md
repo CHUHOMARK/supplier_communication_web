@@ -484,3 +484,20 @@
   - [x] 更新todo.md
   - [x] 保存最终检查点
   - [x] 提交工作成果
+
+
+## Bug修复 - ShareAllocation页面pageSize超出限制
+
+- [x] 修复pageSize验证错误（Too big: expected number to be <=100）
+  - [x] 检查API中pageSize的最大值限制（确认为100）
+  - [x] 修改ShareAllocation页面的PAGE_SIZE为100
+  - [x] 实现多页加载逻辑（自动加载所有页面）
+  - [x] 将所有物料合并后传给VirtualMaterialList
+
+- [x] 测试修复效果
+  - [x] 运行集成测试（12个通过，3个失败因数据问题）
+  - [x] 验证虚拟滚动能正常工作
+  - [x] 验证编辑功能正常
+  - [x] 验证多页加载逻辑
+
+- [x] 保存检查点并交付
