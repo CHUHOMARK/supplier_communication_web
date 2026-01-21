@@ -144,7 +144,7 @@ export default function ShareAllocation() {
                 <div>
                   <Label htmlFor="plan-select" className="mb-2 block">物料计划</Label>
                   <Select
-                    value="none"
+                    value={selectedPlanId ? selectedPlanId.toString() : "none"}
                     onValueChange={handlePlanChange}
                   >
                     <SelectTrigger id="plan-select" className="w-full">
