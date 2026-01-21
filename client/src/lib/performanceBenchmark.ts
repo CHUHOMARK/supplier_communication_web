@@ -35,8 +35,8 @@ export function measureRenderTime(fn: () => void): number {
  * 测量内存使用
  */
 export function measureMemoryUsage(): number {
-  if (performance.memory) {
-    return performance.memory.usedJSHeapSize;
+  if ((performance as any).memory) {
+    return (performance as any).memory.usedJSHeapSize;
   }
   return 0;
 }

@@ -1,0 +1,22 @@
+{
+  "query": "\nSELECT materialCode, materialName FROM material_items WHERE planId = 1;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway03.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2oD5Rpux9cjqHPq.05f21cb26eb8 --database ZuNBVd6CLssbosJUyd9j6x --execute \nSELECT materialCode, materialName FROM material_items WHERE planId = 1;\n",
+  "rows": [
+    {
+      "materialCode": "MAT001",
+      "materialName": "钢板"
+    },
+    {
+      "materialCode": "MAT002",
+      "materialName": "铝管"
+    },
+    {
+      "materialCode": "MAT003",
+      "materialName": "螺钉"
+    }
+  ],
+  "messages": [],
+  "stdout": "materialCode\tmaterialName\nMAT001\t钢板\nMAT002\t铝管\nMAT003\t螺钉\n",
+  "stderr": "",
+  "execution_time_ms": 1533
+}

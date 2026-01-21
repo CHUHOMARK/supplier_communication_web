@@ -71,7 +71,11 @@ export default function ShareAllocation() {
           }
         }
 
-        setAllMaterials(materials);
+        // 过滤出只有多个供应商的物料
+        const multiSupplierMaterials = materials.filter(
+          (m) => m.suppliers && m.suppliers.length > 1
+        );
+        setAllMaterials(multiSupplierMaterials);
       } catch (err) {
         console.error('加载所有页面失败:', err);
       } finally {
@@ -240,7 +244,7 @@ export default function ShareAllocation() {
             ) : (
               <>
                 <div className="text-sm text-muted-foreground mb-4">
-                  共 {totalMaterials} 个多供应商物料
+                  共 {allMaterials.length} 个多供应商物料
                 </div>
                 <VirtualMaterialList
                   materials={allMaterials}
