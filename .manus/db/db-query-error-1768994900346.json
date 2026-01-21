@@ -1,0 +1,10 @@
+{
+  "query": "\n-- 查询物料计划\nSELECT id, fileName, planStartDate, planEndDate FROM material_plans LIMIT 5;\n\n-- 查询物料项\nSELECT id, materialPlanId, materialCode, materialName FROM material_items LIMIT 10;\n\n-- 查询供应商\nSELECT id, supplierName FROM suppliers LIMIT 10;\n\n-- 查询物料供应商映射\nSELECT id, userId, materialCode, supplierId, sharePercentage FROM material_supplier_mappings LIMIT 10;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway03.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2oD5Rpux9cjqHPq.05f21cb26eb8 --database ZuNBVd6CLssbosJUyd9j6x --execute \n-- 查询物料计划\nSELECT id, fileName, planStartDate, planEndDate FROM material_plans LIMIT 5;\n\n-- 查询物料项\nSELECT id, materialPlanId, materialCode, materialName FROM material_items LIMIT 10;\n\n-- 查询供应商\nSELECT id, supplierName FROM suppliers LIMIT 10;\n\n-- 查询物料供应商映射\nSELECT id, userId, materialCode, supplierId, sharePercentage FROM material_supplier_mappings LIMIT 10;\n",
+  "returncode": 1,
+  "logs": [
+    "id\tfileName\tplanStartDate\tplanEndDate",
+    "180005\t1月5日-2月13日.xlsx\t2026-01-05\t2026-02-13",
+    "ERROR 1054 (42S22) at line 6: Unknown column 'materialplanid' in 'field list'"
+  ]
+}
