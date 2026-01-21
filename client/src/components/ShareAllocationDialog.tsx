@@ -14,13 +14,13 @@ interface ShareAllocationDialogProps {
   onOpenChange: (open: boolean) => void;
   materialCode: string;
   materialName: string;
+  planId: number;
   onSuccess?: () => void;
 }
 
 interface SupplierShare {
   supplierId: number;
   sharePercentage: number;
-  priority: number;
 }
 
 export default function ShareAllocationDialog({
@@ -28,71 +28,76 @@ export default function ShareAllocationDialog({
   onOpenChange,
   materialCode,
   materialName,
+  planId,
   onSuccess,
 }: ShareAllocationDialogProps) {
   const [supplierShares, setSupplierShares] = useState<SupplierShare[]>([]);
+  const [isSaving, setIsSaving] = useState(false);
 
+  // 获取所有供应商列表
   const { data: suppliers = [] } = trpc.supplier.list.useQuery();
-  const { data: existingMappings } = trpc.mapping.getByMaterialCode.useQuery(
-    { materialCode },
-    { enabled: open && !!materialCode }
-  );
-  
 
-  const utils = trpc.useUtils();
-  const upsertMutation = trpc.mapping.upsert.useMutation({
+  // 获取该物料的现有供应商分配详情
+  const { data: materialDetail } = trpc.mapping.getByPlanAndMaterial.useQuery(
+    { 
+      planId,
+      materialCode 
+    },
+    { 
+      enabled: open && !!materialCode && !!planId
+    }
+  );
+
+  // 更新份额的mutation
+  const updateSharesMutation = trpc.mapping.updateShares.useMutation({
     onSuccess: () => {
       toast.success('份额分配保存成功');
-      utils.mapping.list.invalidate();
-      utils.mapping.getByMaterialCode.invalidate({ materialCode });
       onSuccess?.();
       onOpenChange(false);
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast.error(`保存失败：${error.message}`);
+      setIsSaving(false);
     },
   });
 
-  // 加载现有映射
+  // 当物料详情加载完成时，初始化供应商份额
   useEffect(() => {
-    if (existingMappings && existingMappings.length > 0) {
+    if (materialDetail?.suppliers && materialDetail.suppliers.length > 0) {
       setSupplierShares(
-        existingMappings.map((m) => ({
-          supplierId: m.supplierId,
-          sharePercentage: parseFloat(m.sharePercentage || "100"),
-          priority: m.priority || 1,
+        materialDetail.suppliers.map((s: any) => ({
+          supplierId: s.supplierId,
+          sharePercentage: s.sharePercentage,
         }))
       );
     } else {
       setSupplierShares([]);
     }
-  }, [existingMappings]);
+  }, [materialDetail]);
 
+  // 添加供应商
   const addSupplier = () => {
     setSupplierShares([
       ...supplierShares,
       {
         supplierId: 0,
         sharePercentage: 0,
-        priority: supplierShares.length + 1,
       },
     ]);
   };
 
+  // 移除供应商
   const removeSupplier = (index: number) => {
     setSupplierShares(supplierShares.filter((_, i) => i !== index));
   };
 
+  // 更新供应商份额
   const updateSupplier = (index: number, field: keyof SupplierShare, value: number) => {
     const updated = [...supplierShares];
     updated[index] = { ...updated[index], [field]: value };
     
     // 如果修改的是份额百分比，自动计算剩余份额
     if (field === 'sharePercentage' && updated.length > 1) {
-      const currentTotal = updated.reduce((sum, s, i) => {
-        return i === index ? sum : sum + s.sharePercentage;
-      }, 0);
-      
       const remaining = 100 - value;
       
       // 如果剩余份额大于0且还有其他供应商，自动分配到其他供应商
@@ -119,6 +124,7 @@ export default function ShareAllocationDialog({
     setSupplierShares(updated);
   };
 
+  // 保存份额分配
   const handleSave = () => {
     // 验证
     if (supplierShares.length === 0) {
@@ -138,13 +144,14 @@ export default function ShareAllocationDialog({
       return;
     }
 
-    upsertMutation.mutate({
+    setIsSaving(true);
+    updateSharesMutation.mutate({
       materialCode,
-      suppliers: supplierShares,
+      shares: supplierShares,
     });
   };
 
-  // 智能份额建议：根据供应商数量平均分配
+  // 应用平均份额建议
   const applySuggestion = () => {
     if (supplierShares.length === 0) {
       toast.error('请先添加供应商');
@@ -155,7 +162,7 @@ export default function ShareAllocationDialog({
     const updated = supplierShares.map((s, index) => ({
       ...s,
       sharePercentage: index === 0 
-        ? parseFloat((100 - avgShare * (supplierShares.length - 1)).toFixed(2)) // 第一个供应商补足余数
+        ? parseFloat((100 - avgShare * (supplierShares.length - 1)).toFixed(2))
         : parseFloat(avgShare.toFixed(2)),
     }));
 
@@ -163,6 +170,7 @@ export default function ShareAllocationDialog({
     toast.success('已应用平均份额建议');
   };
 
+  // 计算份额总和
   const totalShare = supplierShares.reduce((sum, s) => sum + s.sharePercentage, 0);
   const isValidTotal = Math.abs(totalShare - 100) < 0.01;
 
@@ -212,7 +220,6 @@ export default function ShareAllocationDialog({
                       ))}
                     </SelectContent>
                   </Select>
-
                 </div>
 
                 <div className="w-32">
@@ -224,16 +231,6 @@ export default function ShareAllocationDialog({
                     step="0.1"
                     value={share.sharePercentage}
                     onChange={(e) => updateSupplier(index, 'sharePercentage', parseFloat(e.target.value) || 0)}
-                  />
-                </div>
-
-                <div className="w-24">
-                  <Label className="text-sm">优先级</Label>
-                  <Input
-                    type="number"
-                    min="1"
-                    value={share.priority}
-                    onChange={(e) => updateSupplier(index, 'priority', parseInt(e.target.value) || 1)}
                   />
                 </div>
 
@@ -272,11 +269,11 @@ export default function ShareAllocationDialog({
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSaving}>
             取消
           </Button>
-          <Button onClick={handleSave} disabled={upsertMutation.isPending || !isValidTotal}>
-            {upsertMutation.isPending ? '保存中...' : '保存'}
+          <Button onClick={handleSave} disabled={isSaving || !isValidTotal}>
+            {isSaving ? '保存中...' : '保存'}
           </Button>
         </DialogFooter>
       </DialogContent>

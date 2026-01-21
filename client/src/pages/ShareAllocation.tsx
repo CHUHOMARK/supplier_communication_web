@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { trpc } from '@/lib/trpc';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,80 +7,146 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import ShareAllocationDialog from '@/components/ShareAllocationDialog';
-import { Loader2 } from 'lucide-react';
+import { Loader2, AlertCircle } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
-const PAGE_SIZE = 50; // 每页显示50个物料
+const PAGE_SIZE = 50;
 
-export default function ShareAllocationOptimized() {
-  const [selectedMaterial, setSelectedMaterial] = useState<{ code: string; name: string } | null>(null);
-  const [dialogOpen, setDialogOpen] = useState(false);
+export default function ShareAllocation() {
   const [selectedPlanId, setSelectedPlanId] = useState<number | undefined>(undefined);
   const [currentPage, setCurrentPage] = useState(0);
-  const [materialCache, setMaterialCache] = useState<Map<string, any>>(new Map());
+  const [selectedMaterial, setSelectedMaterial] = useState<{ 
+    code: string; 
+    name: string; 
+    planId: number;
+  } | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
 
+  // 获取所有物料计划
   const { data: plans } = trpc.materialPlan.list.useQuery();
-  
-  // 获取当前计划中的物料代码
-  const { data: planItems } = trpc.materialPlan.getById.useQuery(
-    { planId: selectedPlanId! },
-    { enabled: !!selectedPlanId }
-  );
-  const planMaterialCodes = useMemo(
-    () => new Set(planItems?.items.map(item => item.materialCode) || []),
-    [planItems?.items]
-  );
 
-  // 使用分页API获取物料列表
-  const { data: paginatedData, isLoading, refetch } = trpc.mapping.listPaginated.useQuery(
-    { page: currentPage, pageSize: PAGE_SIZE },
-    { staleTime: 30000 } // 30秒缓存
-  );
-
-  // 过滤多供应商物料，并按计划过滤
-  const multiSupplierMaterials = useMemo(() => {
-    if (!paginatedData?.materials) return [];
-    
-    let materials = paginatedData.materials.filter(
-      (group: any) => group.supplierCount > 1
-    );
-    
-    // 如果选择了计划，只显示该计划中的物料
-    if (selectedPlanId && planMaterialCodes.size > 0) {
-      materials = materials.filter(
-        (group: any) => planMaterialCodes.has(group.materialCode)
-      );
+  // 使用新的API获取计划中的物料及其供应商分配
+  const { 
+    data: materialsData, 
+    isLoading, 
+    error,
+    refetch 
+  } = trpc.mapping.listByPlan.useQuery(
+    { 
+      planId: selectedPlanId!,
+      page: currentPage, 
+      pageSize: PAGE_SIZE 
+    },
+    { 
+      enabled: !!selectedPlanId,
+      staleTime: 30000 
     }
-    
-    return materials;
-  }, [paginatedData?.materials, selectedPlanId, planMaterialCodes]);
+  );
 
-  const handleEditShare = useCallback((materialCode: string) => {
-    setSelectedMaterial({ code: materialCode, name: materialCode });
-    setDialogOpen(true);
+  // 计算分页信息
+  const totalPages = useMemo(() => {
+    if (!materialsData) return 0;
+    return Math.ceil(materialsData.total / PAGE_SIZE);
+  }, [materialsData]);
+
+  const hasNextPage = useMemo(() => {
+    return currentPage < totalPages - 1;
+  }, [currentPage, totalPages]);
+
+  const hasPreviousPage = useMemo(() => {
+    return currentPage > 0;
+  }, [currentPage]);
+
+  // 处理计划选择变化
+  const handlePlanChange = useCallback((value: string) => {
+    const planId = value === "none" ? undefined : Number(value);
+    setSelectedPlanId(planId);
+    setCurrentPage(0);
   }, []);
 
+  // 处理编辑份额
+  const handleEditShare = useCallback((materialCode: string, materialName: string) => {
+    if (!selectedPlanId) return;
+    setSelectedMaterial({ 
+      code: materialCode, 
+      name: materialName,
+      planId: selectedPlanId
+    });
+    setDialogOpen(true);
+  }, [selectedPlanId]);
+
+  // 处理对话框关闭和成功
   const handleDialogSuccess = useCallback(() => {
-    refetch();
     setDialogOpen(false);
-    // 清空缓存以强制刷新
-    setMaterialCache(new Map());
+    setSelectedMaterial(null);
+    refetch();
   }, [refetch]);
 
+  // 处理分页
   const handlePreviousPage = useCallback(() => {
     setCurrentPage(prev => Math.max(0, prev - 1));
   }, []);
 
   const handleNextPage = useCallback(() => {
-    if (paginatedData && currentPage < Math.ceil(paginatedData.total / PAGE_SIZE) - 1) {
+    if (hasNextPage) {
       setCurrentPage(prev => prev + 1);
     }
-  }, [paginatedData]);
+  }, [hasNextPage]);
 
-  const totalPages = paginatedData ? Math.ceil(paginatedData.total / PAGE_SIZE) : 0;
-  const hasNextPage = currentPage < totalPages - 1;
-  const hasPreviousPage = currentPage > 0;
+  // 验证份额是否有效
+  const isShareValid = useCallback((totalShare: number) => {
+    return Math.abs(totalShare - 100) < 0.01;
+  }, []);
 
-  if (isLoading && currentPage === 0) {
+  // 加载中状态
+  if (!selectedPlanId) {
+    return (
+      <div className="min-h-screen bg-background">
+        <header className="border-b bg-card">
+          <div className="container mx-auto py-4">
+            <h1 className="text-2xl font-bold">物料份额分配</h1>
+            <p className="text-sm text-muted-foreground">管理多供应商物料的份额分配</p>
+          </div>
+        </header>
+
+        <main className="container mx-auto py-8">
+          <Card>
+            <CardHeader>
+              <CardTitle>选择物料计划</CardTitle>
+              <CardDescription>
+                请先选择一个物料计划，然后查看其中的多供应商物料
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="plan-select" className="mb-2 block">物料计划</Label>
+                  <Select
+                    value="none"
+                    onValueChange={handlePlanChange}
+                  >
+                    <SelectTrigger id="plan-select" className="w-full">
+                      <SelectValue placeholder="选择物料计划" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {plans?.map((plan) => (
+                        <SelectItem key={plan.id} value={plan.id.toString()}>
+                          {plan.fileName} ({plan.planStartDate} 至 {plan.planEndDate})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </main>
+      </div>
+    );
+  }
+
+  // 加载中状态
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -88,14 +154,51 @@ export default function ShareAllocationOptimized() {
     );
   }
 
+  // 错误状态
+  if (error) {
+    return (
+      <div className="min-h-screen bg-background">
+        <header className="border-b bg-card">
+          <div className="container mx-auto py-4">
+            <h1 className="text-2xl font-bold">物料份额分配</h1>
+            <p className="text-sm text-muted-foreground">管理多供应商物料的份额分配</p>
+          </div>
+        </header>
+
+        <main className="container mx-auto py-8">
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              加载物料列表失败: {error.message}
+            </AlertDescription>
+          </Alert>
+        </main>
+      </div>
+    );
+  }
+
+  // 获取当前计划的信息
+  const currentPlan = plans?.find(p => p.id === selectedPlanId);
+
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b bg-card">
         <div className="container mx-auto py-4 flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold">物料份额分配</h1>
-            <p className="text-sm text-muted-foreground">管理多供应商物料的份额分配</p>
+            <p className="text-sm text-muted-foreground">
+              {currentPlan?.fileName} ({currentPlan?.planStartDate} 至 {currentPlan?.planEndDate})
+            </p>
           </div>
+          <Button
+            variant="outline"
+            onClick={() => {
+              setSelectedPlanId(undefined);
+              setCurrentPage(0);
+            }}
+          >
+            切换计划
+          </Button>
         </div>
       </header>
 
@@ -108,34 +211,10 @@ export default function ShareAllocationOptimized() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {/* 物料计划选择器 */}
-            <div className="flex items-center gap-2">
-              <Label className="whitespace-nowrap">筛选计划：</Label>
-              <Select
-                value={selectedPlanId?.toString() || "all"}
-                onValueChange={(value) => {
-                  setSelectedPlanId(value === "all" ? undefined : Number(value));
-                  setCurrentPage(0); // 重置到第一页
-                }}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="全部物料" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">全部物料</SelectItem>
-                  {plans?.map((plan) => (
-                    <SelectItem key={plan.id} value={plan.id.toString()}>
-                      {plan.fileName} ({plan.planStartDate} - {plan.planEndDate})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {multiSupplierMaterials.length === 0 ? (
+            {!materialsData?.materials || materialsData.materials.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground">
                 <p>暂无多供应商物料</p>
-                <p className="text-sm mt-2">请先在供应商管理页面为物料分配多个供应商</p>
+                <p className="text-sm mt-2">该计划中的所有物料都只有一个供应商</p>
               </div>
             ) : (
               <>
@@ -143,33 +222,37 @@ export default function ShareAllocationOptimized() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>物料代码</TableHead>
-                      <TableHead>供应商数量</TableHead>
-                      <TableHead>份额分配详情</TableHead>
+                      <TableHead>物料名称</TableHead>
+                      <TableHead>缺口</TableHead>
+                      <TableHead>供应商分配</TableHead>
                       <TableHead className="text-right">操作</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {multiSupplierMaterials.map((material: any) => {
-                      const totalShare = material.mappings.reduce((sum: number, s: any) => sum + parseFloat(s.sharePercentage || "0"), 0);
-                      const isValid = Math.abs(totalShare - 100) < 0.01;
+                    {materialsData.materials.map((material: any) => {
+                      const totalShare = material.totalSharePercentage;
+                      const isValid = isShareValid(totalShare);
 
                       return (
                         <TableRow key={material.materialCode}>
                           <TableCell className="font-medium">{material.materialCode}</TableCell>
+                          <TableCell>{material.materialName}</TableCell>
+                          <TableCell>{material.shortage}</TableCell>
                           <TableCell>
-                            <Badge variant="secondary">{material.supplierCount} 家</Badge>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex flex-wrap gap-2">
-                              {material.mappings
-                                .sort((a: any, b: any) => parseFloat(b.sharePercentage || "0") - parseFloat(a.sharePercentage || "0"))
-                                .map((supplier: any) => (
-                                  <Badge key={supplier.supplierId} variant="outline">
-                                    {supplier.supplier?.supplierName || `供应商${supplier.supplierId}`}: {parseFloat(supplier.sharePercentage || "0")}%
+                            <div className="space-y-1">
+                              {material.suppliers.map((supplier: any) => (
+                                <div key={supplier.supplierId} className="text-sm">
+                                  <Badge variant="outline">
+                                    {supplier.supplierName}: {supplier.sharePercentage}%
                                   </Badge>
-                                ))}
+                                </div>
+                              ))}
                               {!isValid && (
-                                <Badge variant="destructive">总和: {totalShare.toFixed(1)}%</Badge>
+                                <div className="text-sm">
+                                  <Badge variant="destructive">
+                                    总和: {totalShare.toFixed(1)}%
+                                  </Badge>
+                                </div>
                               )}
                             </div>
                           </TableCell>
@@ -177,7 +260,7 @@ export default function ShareAllocationOptimized() {
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => handleEditShare(material.materialCode)}
+                              onClick={() => handleEditShare(material.materialCode, material.materialName)}
                             >
                               编辑份额
                             </Button>
@@ -191,7 +274,7 @@ export default function ShareAllocationOptimized() {
                 {/* 分页控件 */}
                 <div className="flex items-center justify-between pt-4 border-t">
                   <div className="text-sm text-muted-foreground">
-                    第 {currentPage + 1} / {totalPages} 页 | 共 {paginatedData?.total} 个物料
+                    第 {currentPage + 1} / {totalPages} 页 | 共 {materialsData.total} 个物料
                   </div>
                   <div className="flex gap-2">
                     <Button
@@ -224,6 +307,7 @@ export default function ShareAllocationOptimized() {
           onOpenChange={setDialogOpen}
           materialCode={selectedMaterial.code}
           materialName={selectedMaterial.name}
+          planId={selectedMaterial.planId}
           onSuccess={handleDialogSuccess}
         />
       )}

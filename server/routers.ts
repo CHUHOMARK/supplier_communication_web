@@ -459,6 +459,62 @@ export const appRouter = router({
           supplier: supplierMap.get(m.supplierId),
         }));
       }),
+    
+    // 新API: 按计划获取物料及其供应商分配（分页）
+    listByPlan: protectedProcedure
+      .input(z.object({
+        planId: z.number(),
+        page: z.number().int().min(0).default(0),
+        pageSize: z.number().int().min(1).max(100).default(50),
+      }))
+      .query(async ({ ctx, input }) => {
+        return await db.getMaterialsWithSuppliersByPlan(
+          input.planId,
+          input.page,
+          input.pageSize
+        );
+      }),
+    
+    // 新API: 按计划和物料代码获取供应商分配详情
+    getByPlanAndMaterial: protectedProcedure
+      .input(z.object({
+        planId: z.number(),
+        materialCode: z.string(),
+      }))
+      .query(async ({ ctx, input }) => {
+        return await db.getMaterialSupplierAllocationDetail(
+          input.planId,
+          input.materialCode
+        );
+      }),
+    
+    // 新API: 更新物料的供应商份额分配
+    updateShares: protectedProcedure
+      .input(z.object({
+        materialCode: z.string(),
+        shares: z.array(z.object({
+          supplierId: z.number(),
+          sharePercentage: z.number().min(0).max(100),
+        })),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        try {
+          const updatedCount = await db.updateMaterialSupplierShares(
+            input.materialCode,
+            input.shares,
+            ctx.user.id
+          );
+          return {
+            success: true,
+            updatedCount,
+          };
+        } catch (error) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: error instanceof Error ? error.message : '更新失败',
+          });
+        }
+      }),
   }),
 
   // 邮件生成
