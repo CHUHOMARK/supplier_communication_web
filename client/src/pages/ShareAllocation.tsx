@@ -2,19 +2,18 @@ import { useState, useCallback, useMemo } from 'react';
 import { trpc } from '@/lib/trpc';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import ShareAllocationDialog from '@/components/ShareAllocationDialog';
+import VirtualMaterialList from '@/components/VirtualMaterialList';
 import { Loader2, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
-const PAGE_SIZE = 50;
+// 一次性加载所有物料，不使用分页
+const PAGE_SIZE = 1000;
 
 export default function ShareAllocation() {
   const [selectedPlanId, setSelectedPlanId] = useState<number | undefined>(undefined);
-  const [currentPage, setCurrentPage] = useState(0);
   const [selectedMaterial, setSelectedMaterial] = useState<{ 
     code: string; 
     name: string; 
@@ -25,7 +24,7 @@ export default function ShareAllocation() {
   // 获取所有物料计划
   const { data: plans } = trpc.materialPlan.list.useQuery();
 
-  // 使用新的API获取计划中的物料及其供应商分配
+  // 使用新的API获取计划中的物料及其供应商分配（一次性加载所有）
   const { 
     data: materialsData, 
     isLoading, 
@@ -34,7 +33,7 @@ export default function ShareAllocation() {
   } = trpc.mapping.listByPlan.useQuery(
     { 
       planId: selectedPlanId!,
-      page: currentPage, 
+      page: 0, 
       pageSize: PAGE_SIZE 
     },
     { 
@@ -43,25 +42,10 @@ export default function ShareAllocation() {
     }
   );
 
-  // 计算分页信息
-  const totalPages = useMemo(() => {
-    if (!materialsData) return 0;
-    return Math.ceil(materialsData.total / PAGE_SIZE);
-  }, [materialsData]);
-
-  const hasNextPage = useMemo(() => {
-    return currentPage < totalPages - 1;
-  }, [currentPage, totalPages]);
-
-  const hasPreviousPage = useMemo(() => {
-    return currentPage > 0;
-  }, [currentPage]);
-
   // 处理计划选择变化
   const handlePlanChange = useCallback((value: string) => {
     const planId = value === "none" ? undefined : Number(value);
     setSelectedPlanId(planId);
-    setCurrentPage(0);
   }, []);
 
   // 处理编辑份额
@@ -82,21 +66,10 @@ export default function ShareAllocation() {
     refetch();
   }, [refetch]);
 
-  // 处理分页
-  const handlePreviousPage = useCallback(() => {
-    setCurrentPage(prev => Math.max(0, prev - 1));
-  }, []);
-
-  const handleNextPage = useCallback(() => {
-    if (hasNextPage) {
-      setCurrentPage(prev => prev + 1);
-    }
-  }, [hasNextPage]);
-
-  // 验证份额是否有效
-  const isShareValid = useCallback((totalShare: number) => {
-    return Math.abs(totalShare - 100) < 0.01;
-  }, []);
+  // 获取当前计划的信息
+  const currentPlan = useMemo(() => {
+    return plans?.find(p => p.id === selectedPlanId);
+  }, [plans, selectedPlanId]);
 
   // 加载中状态
   if (!selectedPlanId) {
@@ -177,9 +150,6 @@ export default function ShareAllocation() {
     );
   }
 
-  // 获取当前计划的信息
-  const currentPlan = plans?.find(p => p.id === selectedPlanId);
-
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b bg-card">
@@ -194,7 +164,6 @@ export default function ShareAllocation() {
             variant="outline"
             onClick={() => {
               setSelectedPlanId(undefined);
-              setCurrentPage(0);
             }}
           >
             切换计划
@@ -218,83 +187,14 @@ export default function ShareAllocation() {
               </div>
             ) : (
               <>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>物料代码</TableHead>
-                      <TableHead>物料名称</TableHead>
-                      <TableHead>缺口</TableHead>
-                      <TableHead>供应商分配</TableHead>
-                      <TableHead className="text-right">操作</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {materialsData.materials.map((material: any) => {
-                      const totalShare = material.totalSharePercentage;
-                      const isValid = isShareValid(totalShare);
-
-                      return (
-                        <TableRow key={material.materialCode}>
-                          <TableCell className="font-medium">{material.materialCode}</TableCell>
-                          <TableCell>{material.materialName}</TableCell>
-                          <TableCell>{material.shortage}</TableCell>
-                          <TableCell>
-                            <div className="space-y-1">
-                              {material.suppliers.map((supplier: any) => (
-                                <div key={supplier.supplierId} className="text-sm">
-                                  <Badge variant="outline">
-                                    {supplier.supplierName}: {supplier.sharePercentage}%
-                                  </Badge>
-                                </div>
-                              ))}
-                              {!isValid && (
-                                <div className="text-sm">
-                                  <Badge variant="destructive">
-                                    总和: {totalShare.toFixed(1)}%
-                                  </Badge>
-                                </div>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleEditShare(material.materialCode, material.materialName)}
-                            >
-                              编辑份额
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-
-                {/* 分页控件 */}
-                <div className="flex items-center justify-between pt-4 border-t">
-                  <div className="text-sm text-muted-foreground">
-                    第 {currentPage + 1} / {totalPages} 页 | 共 {materialsData.total} 个物料
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handlePreviousPage}
-                      disabled={!hasPreviousPage || isLoading}
-                    >
-                      上一页
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleNextPage}
-                      disabled={!hasNextPage || isLoading}
-                    >
-                      下一页
-                    </Button>
-                  </div>
+                <div className="text-sm text-muted-foreground mb-4">
+                  共 {materialsData.total} 个多供应商物料
                 </div>
+                <VirtualMaterialList
+                  materials={materialsData.materials}
+                  onEditShare={handleEditShare}
+                  isLoading={isLoading}
+                />
               </>
             )}
           </CardContent>

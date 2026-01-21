@@ -1,5 +1,5 @@
-import { useVirtualizer } from '@tanstack/react-virtual';
 import { useRef, useMemo } from 'react';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -35,15 +35,16 @@ export default function VirtualMaterialList({
     getScrollElement: () => parentRef.current,
     estimateSize: () => 80, // 每行估计高度
     overscan: 10, // 预加载10行
+    measureElement: typeof window !== 'undefined' && navigator.userAgent.indexOf('jsdom') === -1 ? undefined : undefined,
   });
 
   const virtualItems = virtualizer.getVirtualItems();
   const totalSize = virtualizer.getTotalSize();
 
-  const paddingTop = virtualItems.length > 0 ? virtualItems?.[0]?.start || 0 : 0;
+  const paddingTop = virtualItems.length > 0 ? virtualItems[0]?.start || 0 : 0;
   const paddingBottom =
     virtualItems.length > 0
-      ? totalSize - (virtualItems?.[virtualItems.length - 1]?.end || 0)
+      ? totalSize - (virtualItems[virtualItems.length - 1]?.end || 0)
       : 0;
 
   return (
