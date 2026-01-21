@@ -1,4 +1,3 @@
-import { useAuth } from "@/_core/hooks/useAuth";
 import { getLoginUrl } from "@/const";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,6 +5,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Upload, Users, Mail, FileSpreadsheet, Settings as SettingsIcon, BarChart3, PieChart } from "lucide-react";
 import { Link } from "wouter";
 import { useState } from "react";
+import { trpc } from "@/lib/trpc";
+import { useAuth } from "@/_core/hooks/useAuth";
 import MaterialPlanUpload from "@/components/MaterialPlanUpload";
 import SupplierManagement from "@/components/SupplierManagement";
 import EmailGeneration from "@/components/EmailGeneration";
@@ -13,6 +14,8 @@ import EmailGeneration from "@/components/EmailGeneration";
 export default function Home() {
   const { user, loading } = useAuth();
   const [activeTab, setActiveTab] = useState("upload");
+  const { data: plans } = trpc.materialPlan.list.useQuery();
+  const selectedPlanId = plans && plans.length > 0 ? plans[0].id : undefined;
 
   if (loading) {
     return (
@@ -119,7 +122,15 @@ export default function Home() {
           </TabsContent>
 
           <TabsContent value="suppliers" className="space-y-4">
-            <SupplierManagement onMappingComplete={() => setActiveTab("share")} />
+            {selectedPlanId ? (
+              <SupplierManagement planId={selectedPlanId} onMappingComplete={() => setActiveTab("share")} />
+            ) : (
+              <Card>
+                <CardContent className="pt-6">
+                  <p className="text-center text-muted-foreground">请先上传物料计划</p>
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
 
           <TabsContent value="share" className="space-y-4">

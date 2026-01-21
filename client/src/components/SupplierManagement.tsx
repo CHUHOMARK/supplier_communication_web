@@ -12,10 +12,11 @@ import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 
 interface SupplierManagementProps {
+  planId: number;
   onMappingComplete?: () => void;
 }
 
-export default function SupplierManagement({ onMappingComplete }: SupplierManagementProps) {
+export default function SupplierManagement({ planId, onMappingComplete }: SupplierManagementProps) {
   const [mappingFile, setMappingFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
@@ -131,7 +132,7 @@ export default function SupplierManagement({ onMappingComplete }: SupplierManage
         const base64 = e.target?.result as string;
         const fileBase64 = base64.split(',')[1];
 
-        uploadMappingMutation.mutate({ fileBase64 });
+        uploadMappingMutation.mutate({ planId, fileBase64 });
       };
       reader.readAsDataURL(mappingFile);
     } catch (error) {
@@ -253,7 +254,7 @@ export default function SupplierManagement({ onMappingComplete }: SupplierManage
   return (
     <div className="space-y-4">
       {/* 采购订单导入 */}
-      <PurchaseOrderImport onImportComplete={() => {
+      <PurchaseOrderImport planId={planId} onImportComplete={() => {
         utils.supplier.list.invalidate();
         utils.mapping.list.invalidate();
         onMappingComplete?.();
