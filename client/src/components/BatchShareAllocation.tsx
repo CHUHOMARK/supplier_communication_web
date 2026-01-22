@@ -13,7 +13,6 @@ import { toast } from "sonner";
 interface BatchShareAllocationProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  planId: number;
   materials: Array<{ code: string; name: string }>;
   onSuccess?: () => void;
 }
@@ -27,7 +26,6 @@ interface SupplierShare {
 export default function BatchShareAllocation({
   open,
   onOpenChange,
-  planId,
   materials,
   onSuccess,
 }: BatchShareAllocationProps) {
@@ -111,7 +109,6 @@ export default function BatchShareAllocation({
       for (const materialCode of Array.from(selectedMaterials)) {
         try {
           await upsertMutation.mutateAsync({
-            planId,
             materialCode,
             suppliers: supplierShares,
           });

@@ -79,7 +79,6 @@ export type InsertSupplier = typeof suppliers.$inferInsert;
 export const materialSupplierMappings = mysqlTable("material_supplier_mappings", {
   id: int("id").autoincrement().primaryKey(),
   userId: int("userId").notNull(),
-  planId: int("planId").notNull(),
   materialCode: varchar("materialCode", { length: 100 }).notNull(),
   supplierId: int("supplierId").notNull(),
   /**
@@ -96,10 +95,8 @@ export const materialSupplierMappings = mysqlTable("material_supplier_mappings",
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 }, (table) => ({
   userIdIdx: index("idx_user_id").on(table.userId),
-  planIdIdx: index("idx_plan_id").on(table.planId),
   materialCodeIdx: index("idx_material_code").on(table.materialCode),
   userMaterialIdx: index("idx_user_material").on(table.userId, table.materialCode),
-  planMaterialIdx: index("idx_plan_material").on(table.planId, table.materialCode),
 }));
 
 export type MaterialSupplierMapping = typeof materialSupplierMappings.$inferSelect;

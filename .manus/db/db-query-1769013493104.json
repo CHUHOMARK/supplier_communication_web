@@ -1,9 +1,0 @@
-{
-  "query": "UPDATE material_supplier_mappings SET planId = 240001 WHERE planId IS NULL OR planId = 0",
-  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway03.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2oD5Rpux9cjqHPq.05f21cb26eb8 --database ZuNBVd6CLssbosJUyd9j6x --execute UPDATE material_supplier_mappings SET planId = 240001 WHERE planId IS NULL OR planId = 0",
-  "rows": [],
-  "messages": [],
-  "stdout": "",
-  "stderr": "",
-  "execution_time_ms": 1593
-}

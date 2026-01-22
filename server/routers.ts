@@ -243,7 +243,6 @@ export const appRouter = router({
     // 上传供应商映射表
     uploadMapping: protectedProcedure
       .input(z.object({
-        planId: z.number(),
         fileBase64: z.string(),
       }))
       .mutation(async ({ ctx, input }) => {
@@ -286,7 +285,6 @@ export const appRouter = router({
             // 创建新映射
             await db.createMaterialSupplierMapping({
               userId: ctx.user.id,
-              planId: input.planId,
               materialCode: mapping.materialCode,
               supplierId,
             });
@@ -357,7 +355,6 @@ export const appRouter = router({
     // 创建或更新映射（支持多供应商）
     upsert: protectedProcedure
       .input(z.object({
-        planId: z.number(),
         materialCode: z.string(),
         suppliers: z.array(z.object({
           supplierId: z.number(),
@@ -402,7 +399,6 @@ export const appRouter = router({
           
           const mappingId = await db.createMaterialSupplierMapping({
             userId: ctx.user.id,
-            planId: input.planId,
             materialCode: input.materialCode,
             supplierId: supplier.supplierId,
             sharePercentage: newShare,
@@ -863,7 +859,6 @@ export const appRouter = router({
     // 应用计算结果（创建供应商和映射）
     applyCalculations: protectedProcedure
       .input(z.object({
-        planId: z.number(),
         calculations: z.array(z.object({
           materialCode: z.string(),
           materialName: z.string(),
@@ -915,7 +910,6 @@ export const appRouter = router({
             if (supplierId) {
               await db.createMaterialSupplierMapping({
                 userId: ctx.user.id,
-                planId: input.planId,
                 materialCode: calc.materialCode,
                 supplierId,
                 sharePercentage: supplier.sharePercentage.toFixed(2),
