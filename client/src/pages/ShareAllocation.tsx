@@ -46,6 +46,8 @@ export default function ShareAllocation() {
   );
 
   // 当获取到第一页数据时，自动加载所有其他页面
+  const utils = trpc.useUtils();
+  
   useEffect(() => {
     if (!firstPageData || !selectedPlanId) return;
 
@@ -60,7 +62,7 @@ export default function ShareAllocation() {
 
         // 加载剩余的页面
         for (let page = 1; page < totalPages; page++) {
-          const response = await trpc.mapping.listByPlan.query({
+          const response = await utils.mapping.listByPlan.fetch({
             planId: selectedPlanId,
             page,
             pageSize: PAGE_SIZE,
