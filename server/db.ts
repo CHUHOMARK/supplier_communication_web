@@ -12,6 +12,7 @@ import {
   emailSendLogs,
   supplierConfirmations,
   confirmationModifications,
+  purchaseOrders,
   InsertMaterialPlan,
   InsertMaterialItem,
   InsertSupplier,
@@ -1021,14 +1022,37 @@ export async function getMaterialsWithSuppliersByPlan(
         0
       );
 
+      // 获取每个供应商的未交付数量
+      const undeliveredBySupplier: Record<number, number> = {};
+      for (const mapping of mappings) {
+        if (mapping.supplierName) {
+          const poData = await db
+            .select({
+              undelivered: sql<number>`COALESCE(SUM(${purchaseOrders.undeliveredQuantity}), 0)`,
+            })
+            .from(purchaseOrders)
+            .where(
+              and(
+                eq(purchaseOrders.materialCode, material.materialCode),
+                eq(purchaseOrders.supplierName, mapping.supplierName)
+              )
+            );
+          undeliveredBySupplier[mapping.supplierId] = Number(poData[0]?.undelivered || 0);
+        }
+      }
+
+      const totalUndelivered = Object.values(undeliveredBySupplier).reduce((sum, val) => sum + val, 0);
+
       return {
         materialCode: material.materialCode,
         materialName: material.materialName || "",
         shortage: Number(material.shortage) || 0,
+        undeliveredQuantity: totalUndelivered,
         suppliers: mappings.map((m) => ({
           supplierId: m.supplierId,
           supplierName: m.supplierName || "",
           sharePercentage: Number(m.sharePercentage) || 0,
+          undeliveredQuantity: undeliveredBySupplier[m.supplierId] || 0,
         })),
         totalSharePercentage,
       };

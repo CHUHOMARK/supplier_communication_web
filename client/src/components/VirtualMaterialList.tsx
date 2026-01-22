@@ -8,10 +8,12 @@ interface Material {
   materialCode: string;
   materialName: string;
   shortage: number;
+  undeliveredQuantity: number;
   suppliers: Array<{
     supplierId: number;
     supplierName: string;
     sharePercentage: number;
+    undeliveredQuantity: number;
   }>;
   totalSharePercentage: number;
 }
@@ -57,7 +59,7 @@ export default function VirtualMaterialList({
           <TableRow>
             <TableHead>物料代码</TableHead>
             <TableHead>物料名称</TableHead>
-            <TableHead>缺口</TableHead>
+            <TableHead>未交付数量</TableHead>
             <TableHead>供应商分配</TableHead>
             <TableHead className="text-right">操作</TableHead>
           </TableRow>
@@ -77,7 +79,7 @@ export default function VirtualMaterialList({
               <TableRow key={virtualItem.key} data-index={virtualItem.index}>
                 <TableCell className="font-medium">{material.materialCode}</TableCell>
                 <TableCell>{material.materialName}</TableCell>
-                <TableCell>{material.shortage}</TableCell>
+                <TableCell className="font-semibold text-blue-600">{material.undeliveredQuantity}</TableCell>
                 <TableCell>
                   <div className="space-y-1">
                     {material.suppliers.map((supplier) => (

@@ -152,6 +152,42 @@ export default function ShareAllocationDialog({
     });
   };
 
+  // 基于未交付数量的自动份额计算
+  const applyUndeliveredBasedAllocation = () => {
+    if (!materialDetail?.suppliers || materialDetail.suppliers.length === 0) {
+      toast.error('无法获取未交付数量信息');
+      return;
+    }
+
+    const totalUndelivered = materialDetail.suppliers.reduce(
+      (sum: number, s: any) => sum + (s.undeliveredQuantity || 0),
+      0
+    );
+
+    if (totalUndelivered === 0) {
+      toast.error('没有未交付的物料');
+      return;
+    }
+
+    const updated = materialDetail.suppliers.map((supplier: any) => {
+      const undelivered = supplier.undeliveredQuantity || 0;
+      const percentage = (undelivered / totalUndelivered) * 100;
+      return {
+        supplierId: supplier.supplierId,
+        sharePercentage: parseFloat(percentage.toFixed(2)),
+      };
+    });
+
+    const total = updated.reduce((sum, s) => sum + s.sharePercentage, 0);
+    if (Math.abs(total - 100) > 0.01) {
+      const diff = 100 - total;
+      updated[0].sharePercentage = parseFloat((updated[0].sharePercentage + diff).toFixed(2));
+    }
+
+    setSupplierShares(updated);
+    toast.success('已根据未交付数量自动计算份额');
+  };
+
   // 应用平均份额建议
   const applySuggestion = () => {
     if (supplierShares.length === 0) {
@@ -190,12 +226,18 @@ export default function ShareAllocationDialog({
           {supplierShares.length > 1 && !isValidTotal && (
             <Alert>
               <Lightbulb className="h-4 w-4" />
-              <AlertDescription className="flex items-center justify-between">
+              <AlertDescription className="flex items-center justify-between gap-2">
                 <span>可以使用智能建议功能快速分配份额</span>
-                <Button size="sm" variant="outline" onClick={applySuggestion}>
-                  <TrendingUp className="h-4 w-4 mr-2" />
-                  应用平均分配
-                </Button>
+                <div className="flex gap-2">
+                  <Button size="sm" variant="outline" onClick={applyUndeliveredBasedAllocation}>
+                    <TrendingUp className="h-4 w-4 mr-2" />
+                    根据未交付数量
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={applySuggestion}>
+                    <TrendingUp className="h-4 w-4 mr-2" />
+                    应用平均分配
+                  </Button>
+                </div>
               </AlertDescription>
             </Alert>
           )}

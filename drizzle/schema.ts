@@ -183,6 +183,36 @@ export type GeneratedEmail = typeof generatedEmails.$inferSelect;
 export type InsertGeneratedEmail = typeof generatedEmails.$inferInsert;
 
 /**
+ * 采购订单表
+ */
+export const purchaseOrders = mysqlTable("purchase_orders", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  businessDate: timestamp("businessDate").notNull(), // 业务日期
+  poNumber: varchar("poNumber", { length: 100 }).notNull(), // 单据编号
+  supplierName: varchar("supplierName", { length: 255 }).notNull(), // 供应商名称
+  materialCode: varchar("materialCode", { length: 100 }).notNull(), // 料号
+  materialName: varchar("materialName", { length: 255 }).notNull(), // 料品名称
+  materialSpec: text("materialSpec"), // 料品规格
+  purchaseQuantity: int("purchaseQuantity").notNull(), // 采购数量
+  confirmedQuantity: int("confirmedQuantity").notNull(), // 确认数量
+  receivedQuantity: int("receivedQuantity").notNull(), // 累计实收数量
+  undeliveredQuantity: int("undeliveredQuantity").notNull(), // 未到货数量
+  requiredDeliveryDate: varchar("requiredDeliveryDate", { length: 50 }), // 要求交货日期
+  purchaseStaff: varchar("purchaseStaff", { length: 100 }), // 采购业务员名称
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => ({
+  userIdIdx: index("idx_po_user_id").on(table.userId),
+  materialCodeIdx: index("idx_po_material_code").on(table.materialCode),
+  supplierNameIdx: index("idx_po_supplier_name").on(table.supplierName),
+  materialSupplierIdx: index("idx_po_material_supplier").on(table.materialCode, table.supplierName),
+}));
+
+export type PurchaseOrder = typeof purchaseOrders.$inferSelect;
+export type InsertPurchaseOrder = typeof purchaseOrders.$inferInsert;
+
+/**
  * 确认修改历史记录表（供应商修改交期数量的历史记录）
  */
 export const confirmationModifications = mysqlTable("confirmation_modifications", {

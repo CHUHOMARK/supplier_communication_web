@@ -111,9 +111,13 @@ export default function BatchShareAllocation({
       for (const materialCode of Array.from(selectedMaterials)) {
         try {
           await upsertMutation.mutateAsync({
-            planId,
-            materialCode,
-            suppliers: supplierShares,
+            planId: planId,
+            materialCode: materialCode,
+            suppliers: supplierShares.map(s => ({
+              supplierId: s.supplierId,
+              sharePercentage: s.sharePercentage,
+              priority: s.priority,
+            })),
           });
           successCount++;
         } catch (error) {

@@ -106,6 +106,13 @@
       "when": 1769099706761,
       "tag": "0014_worthless_saracen",
       "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "5",
+      "when": 1769100913356,
+      "tag": "0015_glossy_wildside",
+      "breakpoints": true
     }
   ]
 }
