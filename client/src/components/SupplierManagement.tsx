@@ -131,7 +131,11 @@ export default function SupplierManagement({ onMappingComplete }: SupplierManage
         const base64 = e.target?.result as string;
         const fileBase64 = base64.split(',')[1];
 
-        uploadMappingMutation.mutate({ fileBase64 });
+        if (selectedPlanId) {
+          uploadMappingMutation.mutate({ planId: selectedPlanId, fileBase64 });
+        } else {
+          toast.error('请先选择物料计划');
+        }
       };
       reader.readAsDataURL(mappingFile);
     } catch (error) {
@@ -253,11 +257,14 @@ export default function SupplierManagement({ onMappingComplete }: SupplierManage
   return (
     <div className="space-y-4">
       {/* 采购订单导入 */}
-      <PurchaseOrderImport onImportComplete={() => {
-        utils.supplier.list.invalidate();
-        utils.mapping.list.invalidate();
-        onMappingComplete?.();
-      }} />
+      <PurchaseOrderImport 
+        planId={selectedPlanId}
+        onImportComplete={() => {
+          utils.supplier.list.invalidate();
+          utils.mapping.list.invalidate();
+          onMappingComplete?.();
+        }} 
+      />
 
       {/* 供应商映射表上传 */}
       <Card>

@@ -146,6 +146,7 @@ export default function ShareAllocationDialog({
 
     setIsSaving(true);
     updateSharesMutation.mutate({
+      planId,
       materialCode,
       shares: supplierShares,
     });

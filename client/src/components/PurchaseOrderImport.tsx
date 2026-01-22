@@ -8,10 +8,11 @@ import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 
 interface PurchaseOrderImportProps {
+  planId?: number;
   onImportComplete?: () => void;
 }
 
-export default function PurchaseOrderImport({ onImportComplete }: PurchaseOrderImportProps) {
+export default function PurchaseOrderImport({ planId, onImportComplete }: PurchaseOrderImportProps) {
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [previewDialogOpen, setPreviewDialogOpen] = useState(false);
@@ -88,7 +89,12 @@ export default function PurchaseOrderImport({ onImportComplete }: PurchaseOrderI
   };
 
   const handleApply = () => {
+    if (!planId) {
+      toast.error('请先选择物料计划');
+      return;
+    }
     applyCalculationsMutation.mutate({
+      planId,
       calculations: calculations.map(c => ({
         materialCode: c.materialCode,
         materialName: c.materialName,

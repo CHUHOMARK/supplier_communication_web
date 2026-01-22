@@ -1008,7 +1008,12 @@ export async function getMaterialsWithSuppliersByPlan(
           suppliers,
           eq(materialSupplierMappings.supplierId, suppliers.id)
         )
-        .where(eq(materialSupplierMappings.materialCode, material.materialCode))
+        .where(
+          and(
+            eq(materialSupplierMappings.planId, planId),
+            eq(materialSupplierMappings.materialCode, material.materialCode)
+          )
+        )
         .orderBy(desc(materialSupplierMappings.sharePercentage));
 
       const totalSharePercentage = mappings.reduce(
