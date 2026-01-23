@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { trpc } from '@/lib/trpc';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -6,6 +6,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 import ShareAllocationDialog from '@/components/ShareAllocationDialog';
 import VirtualMaterialList from '@/components/VirtualMaterialList';
+import { MaterialTableSkeleton } from '@/components/MaterialTableSkeleton';
+import { Progress } from '@/components/ui/progress';
 import { Loader2, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
@@ -171,14 +173,37 @@ export default function ShareAllocation() {
 
   // 加载中状态
   if (isLoading) {
+    const progress = totalMaterials > 0 ? (allMaterials.length / totalMaterials) * 100 : 0;
+    
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto mb-4" />
-          <p className="text-sm text-muted-foreground">
-            {isLoadingFirstPage ? '加载物料列表...' : `加载所有物料中... (${allMaterials.length}/${totalMaterials})`}
-          </p>
-        </div>
+      <div className="min-h-screen bg-background">
+        <header className="border-b bg-card">
+          <div className="container mx-auto py-4">
+            <h1 className="text-2xl font-bold">物料份额分配</h1>
+            <p className="text-sm text-muted-foreground">管理多供应商物料的份额分配</p>
+          </div>
+        </header>
+
+        <main className="container mx-auto py-8">
+          <Card>
+            <CardHeader>
+              <CardTitle>加载中...</CardTitle>
+              <CardDescription>
+                {isLoadingFirstPage ? '正在加载物料列表' : `正在加载所有物料 (${allMaterials.length}/${totalMaterials})`}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span>加载进度</span>
+                  <span>{Math.round(progress)}%</span>
+                </div>
+                <Progress value={progress} className="h-2" />
+              </div>
+              <MaterialTableSkeleton rows={8} />
+            </CardContent>
+          </Card>
+        </main>
       </div>
     );
   }
