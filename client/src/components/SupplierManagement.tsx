@@ -19,7 +19,7 @@ export default function SupplierManagement({ onMappingComplete }: SupplierManage
   const [mappingFile, setMappingFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
-  const [selectedPlanId, setSelectedPlanId] = useState<number | undefined>(undefined);
+  const [selectedPlanId, setSelectedPlanId] = useState<number>(0);
   const emailImportInputRef = useRef<HTMLInputElement>(null);
   const [editingEmailId, setEditingEmailId] = useState<number | null>(null);
   const [editingEmailValue, setEditingEmailValue] = useState("");
@@ -130,12 +130,7 @@ export default function SupplierManagement({ onMappingComplete }: SupplierManage
       reader.onload = async (e) => {
         const base64 = e.target?.result as string;
         const fileBase64 = base64.split(',')[1];
-
-        if (selectedPlanId) {
-          uploadMappingMutation.mutate({ planId: selectedPlanId, fileBase64 });
-        } else {
-          toast.error('请先选择物料计划');
-        }
+        uploadMappingMutation.mutate({ planId: selectedPlanId, fileBase64 });
       };
       reader.readAsDataURL(mappingFile);
     } catch (error) {
@@ -278,6 +273,23 @@ export default function SupplierManagement({ onMappingComplete }: SupplierManage
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
+          <div>
+            <Label>选择物料计划（可选）</Label>
+            <Select value={selectedPlanId.toString()} onValueChange={(val) => setSelectedPlanId(Number(val))}>
+              <SelectTrigger className="mt-1">
+                <SelectValue placeholder="不指定计划 - 全局映射" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="0">不指定计划 - 全局映射</SelectItem>
+                {plans?.map((plan) => (
+                  <SelectItem key={plan.id} value={plan.id.toString()}>
+                    {plan.fileName}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
           <div>
             <Label>选择Excel文件</Label>
             <Input
