@@ -6,7 +6,6 @@ export interface PurchaseOrderRow {
   materialSpec: string;
   supplierName: string;
   quantity: number;
-  undeliveredQuantity: number; // 未交付数量
   deliveryDate: string;
 }
 
@@ -46,7 +45,6 @@ export function parsePurchaseOrderExcel(buffer: Buffer): PurchaseOrderRow[] {
   const materialSpecIndex = headers.findIndex(h => h && (h.includes('料品规格') || h.includes('规格')));
   const supplierIndex = headers.findIndex(h => h && h.includes('供应商'));
   const quantityIndex = headers.findIndex(h => h && (h.includes('采购数量') || h.includes('数量')));
-  const undeliveredIndex = headers.findIndex(h => h && (h.includes('未到货数量') || h.includes('未交付') || h.includes('未交货')));
   const deliveryDateIndex = headers.findIndex(h => h && (h.includes('要求交货日期') || h.includes('交货日期')));
   
   if (materialCodeIndex === -1 || supplierIndex === -1 || quantityIndex === -1) {
@@ -73,7 +71,6 @@ export function parsePurchaseOrderExcel(buffer: Buffer): PurchaseOrderRow[] {
       materialSpec: materialSpecIndex !== -1 ? String(row[materialSpecIndex] || '').trim() : '',
       supplierName: String(supplierName).trim(),
       quantity: Number(quantity) || 0,
-      undeliveredQuantity: undeliveredIndex !== -1 ? Number(row[undeliveredIndex]) || 0 : (Number(quantity) || 0),
       deliveryDate: deliveryDateIndex !== -1 ? String(row[deliveryDateIndex] || '').trim() : '',
     });
   }
@@ -109,8 +106,7 @@ export function calculateSupplierShares(orders: PurchaseOrderRow[]): SupplierSha
     }
     
     const supplier = material.suppliers.get(order.supplierName)!;
-    // 使用未交付数量计算份额，如果没有未交付数量则使用采购数量
-    supplier.totalQuantity += order.undeliveredQuantity || order.quantity;
+    supplier.totalQuantity += order.quantity;
     supplier.orderCount += 1;
   }
   

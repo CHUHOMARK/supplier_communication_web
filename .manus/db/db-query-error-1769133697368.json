@@ -1,8 +1,0 @@
-{
-  "query": "SELECT supplier_name, SUM(undeliveredQuantity) as total_undelivered FROM purchase_orders WHERE materialCode = 'A1300003' GROUP BY supplier_name; SELECT msm.supplier_id, s.supplier_name, msm.share_percentage FROM material_supplier_mappings msm JOIN suppliers s ON msm.supplier_id = s.id WHERE msm.material_code = 'A1300003' ORDER BY s.supplier_name;",
-  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway03.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2oD5Rpux9cjqHPq.05f21cb26eb8 --database ZuNBVd6CLssbosJUyd9j6x --execute SELECT supplier_name, SUM(undeliveredQuantity) as total_undelivered FROM purchase_orders WHERE materialCode = 'A1300003' GROUP BY supplier_name; SELECT msm.supplier_id, s.supplier_name, msm.share_percentage FROM material_supplier_mappings msm JOIN suppliers s ON msm.supplier_id = s.id WHERE msm.material_code = 'A1300003' ORDER BY s.supplier_name;",
-  "returncode": 1,
-  "logs": [
-    "ERROR 1054 (42S22) at line 1: Unknown column 'supplier_name' in 'group statement'"
-  ]
-}
