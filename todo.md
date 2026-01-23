@@ -785,3 +785,11 @@
   - [x] 使用planId || 0（全局映射）
 - [x] 测试验证修复
   - [x] 执行pnpm build验证编译成功
+
+
+## Bug修复 - BatchShareAllocation TypeScript编译错误 - 完成
+
+- [x] 重新启动开发服务器清除缓存
+- [x] 分析错误原因（开发服务器TypeScript缓存）
+- [x] 确认代码实际上是正确的（第114行有planId）
+- [x] 验证修复（pnpm build成功）
