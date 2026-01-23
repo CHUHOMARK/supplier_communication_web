@@ -89,12 +89,8 @@ export default function PurchaseOrderImport({ planId, onImportComplete }: Purcha
   };
 
   const handleApply = () => {
-    if (!planId) {
-      toast.error('请先选择物料计划');
-      return;
-    }
     applyCalculationsMutation.mutate({
-      planId,
+      planId: planId || 0,
       calculations: calculations.map(c => ({
         materialCode: c.materialCode,
         materialName: c.materialName,

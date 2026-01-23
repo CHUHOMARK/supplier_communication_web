@@ -775,3 +775,13 @@
   - [x] 修改uploadMapping API以接受planId=0
 - [x] 测试验证功能
   - [x] 执行pnpm build验证编译成功
+
+
+## 采购订单导入流程优化 - 完成
+
+- [x] 分析PurchaseOrderImport组件的应用逻辑
+- [x] 移除应用按钮的计划选择对话框
+  - [x] 移除planId的检查逻辑
+  - [x] 使用planId || 0（全局映射）
+- [x] 测试验证修复
+  - [x] 执行pnpm build验证编译成功
