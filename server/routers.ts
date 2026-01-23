@@ -4,7 +4,7 @@ import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import { z } from "zod";
 import * as db from "./db";
-import { parseMaterialPlanExcel } from "./excelParser";
+import { parseMaterialPlanExcel, parseSupplierMappingExcel } from "./excelParser";
 import { generateSupplierEmail, generateEmailCSV } from "./emailGenerator";
 import { TRPCError } from "@trpc/server";
 import { generateModificationExcel } from "./modificationExporter";
@@ -240,7 +240,71 @@ export const appRouter = router({
         }
       }),
 
-
+    // 上传供应商映射表
+    uploadMapping: protectedProcedure
+      .input(z.object({
+        planId: z.number(),
+        fileBase64: z.string(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        try {
+          const buffer = Buffer.from(input.fileBase64, 'base64');
+          const mappings = parseSupplierMappingExcel(buffer);
+          
+          // 获取或创建供应商
+          const existingSuppliers = await db.getSuppliersByUserId(ctx.user.id);
+          const supplierMap = new Map<string, number>();
+          
+          for (const supplier of existingSuppliers) {
+            supplierMap.set(supplier.supplierName, supplier.id);
+          }
+          
+          // 创建新供应商并建立映射
+          let createdCount = 0;
+          let mappingCount = 0;
+          
+          for (const mapping of mappings) {
+            let supplierId = supplierMap.get(mapping.supplierName);
+            
+            if (!supplierId) {
+              // 创建新供应商
+              supplierId = Number(await db.createSupplier({
+                userId: ctx.user.id,
+                supplierName: mapping.supplierName,
+                contactPerson: mapping.contactPerson || null,
+                email: mapping.email || null,
+                phone: mapping.phone || null,
+                notes: mapping.notes || null,
+              }));
+              supplierMap.set(mapping.supplierName, supplierId);
+              createdCount++;
+            }
+            
+            // 删除旧映射
+            await db.deleteMaterialSupplierMappingsByMaterialCode(ctx.user.id, mapping.materialCode);
+            
+            // 创建新映射
+            await db.createMaterialSupplierMapping({
+              planId: input.planId,
+              userId: ctx.user.id,
+              materialCode: mapping.materialCode,
+              supplierId,
+            });
+            mappingCount++;
+          }
+          
+          return {
+            success: true,
+            createdSuppliers: createdCount,
+            mappingCount,
+          };
+        } catch (error) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: error instanceof Error ? error.message : '文件解析失败',
+          });
+        }
+      }),
   }),
 
   // 物料-供应商映射管理
