@@ -1018,9 +1018,31 @@ export const appRouter = router({
             .map(m => m.materialCode)
         );
         
-        const items = allItems.filter(item => 
-          supplierMaterialCodes.has(item.materialCode)
-        );
+        // 创建物料代码到份额的映射
+        const shareMap = new Map<string, string>();
+        mappings
+          .filter(m => m.supplierId === confirmation.supplierId)
+          .forEach(m => {
+            shareMap.set(m.materialCode, m.sharePercentage || "100");
+          });
+        
+        const items = allItems
+          .filter(item => supplierMaterialCodes.has(item.materialCode))
+          .map(item => {
+            // 根据供应商份额重新计算dailySchedule
+            const sharePercentage = parseFloat(shareMap.get(item.materialCode) || "100");
+            const originalSchedule = item.dailySchedule || {};
+            
+            const allocatedSchedule: Record<string, number> = {};
+            for (const [date, qty] of Object.entries(originalSchedule)) {
+              allocatedSchedule[date] = Math.round(qty * sharePercentage / 100);
+            }
+            
+            return {
+              ...item,
+              dailySchedule: allocatedSchedule,
+            };
+          });
 
         return {
           confirmation,
