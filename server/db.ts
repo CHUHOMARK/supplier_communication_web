@@ -1135,7 +1135,8 @@ export async function getMaterialSupplierAllocationDetail(
 export async function updateMaterialSupplierShares(
   materialCode: string,
   shares: Array<{ supplierId: number; sharePercentage: number }>,
-  userId: number
+  userId: number,
+  planId: number
 ) {
   const db = await getDb();
   if (!db) {
@@ -1150,21 +1151,19 @@ export async function updateMaterialSupplierShares(
     );
   }
 
-  // 删除该物料的所有现有映射
-  await db
-    .delete(materialSupplierMappings)
-    .where(eq(materialSupplierMappings.materialCode, materialCode));
+  // 使用原生SQL删除该计划中该物料的所有现有映射
+  await db.execute(
+    sql`DELETE FROM material_supplier_mappings WHERE planId = ${planId} AND materialCode = ${materialCode}`
+  );
 
   // 插入新的映射记录
   if (shares.length > 0) {
-    const newMappings = shares.map((s) => ({
-      userId,
-      materialCode,
-      supplierId: s.supplierId,
-      sharePercentage: s.sharePercentage.toString(),
-    }));
-
-    await db.insert(materialSupplierMappings).values(newMappings as any);
+    for (const share of shares) {
+      await db.execute(
+        sql`INSERT INTO material_supplier_mappings (planId, userId, materialCode, supplierId, sharePercentage) 
+            VALUES (${planId}, ${userId}, ${materialCode}, ${share.supplierId}, ${share.sharePercentage.toString()})`
+      );
+    }
   }
 
   return shares.length;

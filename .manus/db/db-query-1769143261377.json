@@ -1,0 +1,16 @@
+{
+  "query": "SELECT id, fileName, planStartDate, planEndDate FROM material_plans LIMIT 5;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway03.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2oD5Rpux9cjqHPq.05f21cb26eb8 --database ZuNBVd6CLssbosJUyd9j6x --execute SELECT id, fileName, planStartDate, planEndDate FROM material_plans LIMIT 5;",
+  "rows": [
+    {
+      "id": "300001",
+      "fileName": "1月5日-2月13日.xlsx",
+      "planStartDate": "2026-01-05",
+      "planEndDate": "2026-02-13"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tfileName\tplanStartDate\tplanEndDate\n300001\t1月5日-2月13日.xlsx\t2026-01-05\t2026-02-13\n",
+  "stderr": "",
+  "execution_time_ms": 1498
+}

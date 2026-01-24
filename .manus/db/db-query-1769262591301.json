@@ -1,0 +1,9 @@
+{
+  "query": "INSERT INTO material_items (planId, materialCode, materialName, shortage) VALUES\n(300001, 'MAT001', '物料001', 100),\n(300001, 'MAT002', '物料002', 200),\n(300001, 'MAT003', '物料003', 150),\n(300001, 'MAT004', '物料004', 300),\n(300001, 'MAT005', '物料005', 250);",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway03.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2oD5Rpux9cjqHPq.05f21cb26eb8 --database ZuNBVd6CLssbosJUyd9j6x --execute INSERT INTO material_items (planId, materialCode, materialName, shortage) VALUES\n(300001, 'MAT001', '物料001', 100),\n(300001, 'MAT002', '物料002', 200),\n(300001, 'MAT003', '物料003', 150),\n(300001, 'MAT004', '物料004', 300),\n(300001, 'MAT005', '物料005', 250);",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 1548
+}

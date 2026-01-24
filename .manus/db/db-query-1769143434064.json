@@ -1,0 +1,9 @@
+{
+  "query": "SELECT planId, materialCode, COUNT(*) as supplier_count FROM material_supplier_mappings WHERE planId = 300001 GROUP BY planId, materialCode HAVING supplier_count > 1 LIMIT 10;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway03.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2oD5Rpux9cjqHPq.05f21cb26eb8 --database ZuNBVd6CLssbosJUyd9j6x --execute SELECT planId, materialCode, COUNT(*) as supplier_count FROM material_supplier_mappings WHERE planId = 300001 GROUP BY planId, materialCode HAVING supplier_count > 1 LIMIT 10;",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 1542
+}

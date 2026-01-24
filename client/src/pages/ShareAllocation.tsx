@@ -70,14 +70,14 @@ export default function ShareAllocation() {
             pageSize: PAGE_SIZE,
           });
           
-          if (response.materials) {
+          if (response && response.materials) {
             materials.push(...response.materials);
           }
         }
 
         // 过滤出只有多个供应商的物料
         const multiSupplierMaterials = materials.filter(
-          (m) => m.suppliers && m.suppliers.length > 1
+          (m) => m.suppliers && Array.isArray(m.suppliers) && m.suppliers.length > 1
         );
         setAllMaterials(multiSupplierMaterials);
       } catch (err) {
@@ -88,7 +88,7 @@ export default function ShareAllocation() {
     };
 
     loadAllPages();
-  }, [firstPageData, selectedPlanId]);
+  }, [firstPageData, selectedPlanId, utils]);
 
   // 处理计划选择变化
   const handlePlanChange = useCallback((value: string) => {

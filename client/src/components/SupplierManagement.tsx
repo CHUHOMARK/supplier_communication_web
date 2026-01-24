@@ -251,15 +251,43 @@ export default function SupplierManagement({ onMappingComplete }: SupplierManage
 
   return (
     <div className="space-y-4">
+      {/* 物料计划选择 */}
+      <Card>
+        <CardHeader>
+          <CardTitle>选择物料计划</CardTitle>
+          <CardDescription>
+            选择要导入供应商数据的物料计划
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Label>物料计划</Label>
+          <Select value={selectedPlanId.toString()} onValueChange={(val) => setSelectedPlanId(Number(val))}>
+            <SelectTrigger className="mt-2">
+              <SelectValue placeholder="选择物料计划" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="0">全局映射（不指定计划）</SelectItem>
+              {plans?.map((plan) => (
+                <SelectItem key={plan.id} value={plan.id.toString()}>
+                  {plan.fileName} ({plan.planStartDate} 至 {plan.planEndDate})
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </CardContent>
+      </Card>
+
       {/* 采购订单导入 */}
-      <PurchaseOrderImport 
-        planId={selectedPlanId}
-        onImportComplete={() => {
-          utils.supplier.list.invalidate();
-          utils.mapping.list.invalidate();
-          onMappingComplete?.();
-        }} 
-      />
+      {selectedPlanId > 0 && (
+        <PurchaseOrderImport 
+          planId={selectedPlanId}
+          onImportComplete={() => {
+            utils.supplier.list.invalidate();
+            utils.mapping.list.invalidate();
+            onMappingComplete?.();
+          }} 
+        />
+      )}
 
       {/* 供应商映射表上传 */}
       <Card>
@@ -273,23 +301,6 @@ export default function SupplierManagement({ onMappingComplete }: SupplierManage
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
-          <div>
-            <Label>选择物料计划（可选）</Label>
-            <Select value={selectedPlanId.toString()} onValueChange={(val) => setSelectedPlanId(Number(val))}>
-              <SelectTrigger className="mt-1">
-                <SelectValue placeholder="不指定计划 - 全局映射" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="0">不指定计划 - 全局映射</SelectItem>
-                {plans?.map((plan) => (
-                  <SelectItem key={plan.id} value={plan.id.toString()}>
-                    {plan.fileName}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
           <div>
             <Label>选择Excel文件</Label>
             <Input

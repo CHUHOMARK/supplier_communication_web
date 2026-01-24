@@ -6,6 +6,16 @@ import path from "path";
 import { defineConfig } from "vite";
 import { vitePluginManusRuntime } from "vite-plugin-manus-runtime";
 
+// 从环境变量或浏览器URL自动检测HMR主机
+function getHmrHost() {
+  if (process.env.HMR_HOST) return process.env.HMR_HOST;
+  if (process.env.VITE_PUBLIC_URL) {
+    const url = new URL(process.env.VITE_PUBLIC_URL);
+    return url.hostname;
+  }
+  return undefined;
+}
+
 
 const plugins = [react(), tailwindcss(), jsxLocPlugin(), vitePluginManusRuntime()];
 
@@ -38,7 +48,7 @@ export default defineConfig({
     ],
     hmr: {
       protocol: "wss",
-      host: process.env.HMR_HOST || undefined,
+      host: getHmrHost(),
       port: 443,
       clientPort: 443,
     },

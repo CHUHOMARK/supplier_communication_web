@@ -507,7 +507,8 @@ export const appRouter = router({
           const updatedCount = await db.updateMaterialSupplierShares(
             input.materialCode,
             input.shares,
-            ctx.user.id
+            ctx.user.id,
+            input.planId
           );
           return {
             success: true,
