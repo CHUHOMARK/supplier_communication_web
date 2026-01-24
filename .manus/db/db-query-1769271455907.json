@@ -1,0 +1,38 @@
+{
+  "query": "SELECT id, supplierId, planId, confirmToken, dailySchedule FROM supplier_confirmations LIMIT 5;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway03.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2oD5Rpux9cjqHPq.05f21cb26eb8 --database ZuNBVd6CLssbosJUyd9j6x --execute SELECT id, supplierId, planId, confirmToken, dailySchedule FROM supplier_confirmations LIMIT 5;",
+  "rows": [
+    {
+      "id": "150001",
+      "supplierId": "9998",
+      "planId": "9998",
+      "confirmToken": "tKZC3R_GXt9fqD4Alh3az380F68La6IW",
+      "dailySchedule": "NULL"
+    },
+    {
+      "id": "150002",
+      "supplierId": "9999",
+      "planId": "9999",
+      "confirmToken": "8gQZfuIpYNYnMDEdEJh09MUTut9_3D5p",
+      "dailySchedule": "NULL"
+    },
+    {
+      "id": "150003",
+      "supplierId": "10000",
+      "planId": "10000",
+      "confirmToken": "nMh7D35KwUciYHcHJ2XhTQOwHNiAE4ss",
+      "dailySchedule": "NULL"
+    },
+    {
+      "id": "240002",
+      "supplierId": "330211",
+      "planId": "330002",
+      "confirmToken": "Bbg0jjL_m3gwAG2DanITAv9v3Jwwli4d",
+      "dailySchedule": "NULL"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tsupplierId\tplanId\tconfirmToken\tdailySchedule\n150001\t9998\t9998\ttKZC3R_GXt9fqD4Alh3az380F68La6IW\tNULL\n150002\t9999\t9999\t8gQZfuIpYNYnMDEdEJh09MUTut9_3D5p\tNULL\n150003\t10000\t10000\tnMh7D35KwUciYHcHJ2XhTQOwHNiAE4ss\tNULL\n240002\t330211\t330002\tBbg0jjL_m3gwAG2DanITAv9v3Jwwli4d\tNULL\n",
+  "stderr": "",
+  "execution_time_ms": 1533
+}

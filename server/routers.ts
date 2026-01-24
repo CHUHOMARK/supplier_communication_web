@@ -729,6 +729,20 @@ export const appRouter = router({
           });
         }
 
+        // 计算该供应商的日期维度来货数量
+        const supplierDailySchedule: Record<string, number> = {};
+        for (const material of materials) {
+          const schedule = material.dailySchedule || {};
+          const sharePercentage = parseFloat(material.sharePercentage || "100");
+          
+          for (const [date, qty] of Object.entries(schedule)) {
+            const allocatedQty = Math.round(qty * sharePercentage / 100);
+            if (allocatedQty > 0) {
+              supplierDailySchedule[date] = (supplierDailySchedule[date] || 0) + allocatedQty;
+            }
+          }
+        }
+
         await db.createSupplierConfirmation({
           userId: ctx.user.id,
           planId: input.planId,
@@ -737,6 +751,7 @@ export const appRouter = router({
           confirmToken: token,
           expiresAt,
           status: 'pending', // 显式指定初始状态
+          dailySchedule: supplierDailySchedule,
         } as any);
         
         // 生成确认链接URL

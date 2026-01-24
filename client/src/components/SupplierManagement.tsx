@@ -431,7 +431,7 @@ export default function SupplierManagement({ onMappingComplete }: SupplierManage
             <Label className="whitespace-nowrap">筛选计划：</Label>
             <Select
               value={selectedPlanId?.toString() || "all"}
-              onValueChange={(value) => setSelectedPlanId(value === "all" ? undefined : Number(value))}
+              onValueChange={(value) => setSelectedPlanId(value === "all" ? 0 : Number(value) || 0)}
             >
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="全部供应商" />

@@ -616,13 +616,20 @@ export async function createSupplierConfirmation(data: {
   confirmToken: string;
   expiresAt: Date;
   status?: 'pending' | 'confirmed' | 'partial' | 'rejected' | 'modified';
+  dailySchedule?: Record<string, number>;
 }) {
   const db = await getDb();
   if (!db) {
     throw new Error("Database not available");
   }
 
-  const result = await db.insert(supplierConfirmations).values(data);
+  // 确保 dailySchedule 被正确序列化为 JSON
+  const insertData = {
+    ...data,
+    dailySchedule: data.dailySchedule ? JSON.stringify(data.dailySchedule) : null,
+  };
+
+  const result = await db.insert(supplierConfirmations).values(insertData as any);
   return result[0].insertId;
 }
 

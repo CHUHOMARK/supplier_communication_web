@@ -155,6 +155,7 @@ export const supplierConfirmations = mysqlTable("supplier_confirmations", {
   status: mysqlEnum("status", ["pending", "confirmed", "partial", "rejected", "modified"]).default("pending").notNull(),
   supplierResponse: text("supplierResponse"), // 供应商的响应内容（JSON）
   supplierNotes: text("supplierNotes"), // 供应商备注
+  dailySchedule: json("dailySchedule").$type<Record<string, number>>(), // 供应商的日期维度来货数量
   confirmedAt: timestamp("confirmedAt"), // 确认时间
   expiresAt: timestamp("expiresAt").notNull(), // 链接过期时间
   createdAt: timestamp("createdAt").defaultNow().notNull(),
