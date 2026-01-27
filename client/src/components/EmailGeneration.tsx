@@ -48,16 +48,6 @@ export default function EmailGeneration() {
     },
   });
 
-  const batchSendMutation = trpc.email.batchSend.useMutation({
-    onSuccess: (data) => {
-      toast.success(`成功发送 ${data.succeeded} 封邮件${data.failed > 0 ? `，失败 ${data.failed} 封` : ''}`);
-      utils.email.getByPlanId.invalidate({ planId: Number(selectedPlanId) });
-    },
-    onError: (error) => {
-      toast.error(`批量发送失败：${error.message}`);
-    },
-  });
-
   const handleGenerateEmails = () => {
     if (!selectedPlanId) {
       toast.error('请先选择物料计划');
@@ -96,30 +86,6 @@ export default function EmailGeneration() {
     generatedEmails.forEach((email) => {
       handleDownloadTxt(email);
     });
-  };
-
-  const handleBatchSendEmails = () => {
-    if (!generatedEmails || generatedEmails.length === 0) {
-      toast.error('没有可发送的邮件');
-      return;
-    }
-
-    const emailsToSend = generatedEmails
-      .filter(email => email.supplier?.email)
-      .map(email => ({
-        planId: selectedPlanId ? Number(selectedPlanId) : 0,
-        supplierId: email.supplierId,
-        recipientEmail: email.supplier!.email,
-        subject: email.emailSubject,
-        content: email.emailBody,
-      }));
-
-    if (emailsToSend.length === 0) {
-      toast.error('没有供应商设置了邮箱');
-      return;
-    }
-
-    batchSendMutation.mutate({ emails: emailsToSend });
   };
 
   const handleExportCSV = async () => {
@@ -237,10 +203,6 @@ export default function EmailGeneration() {
                   <Button size="sm" onClick={handleExportCSV}>
                     <Download className="h-4 w-4 mr-2" />
                     导出CSV
-                  </Button>
-                  <Button size="sm" onClick={handleBatchSendEmails} disabled={batchSendMutation.isPending}>
-                    <Mail className="h-4 w-4 mr-2" />
-                    {batchSendMutation.isPending ? '发送中...' : '全部发送'}
                   </Button>
                 </div>
               )}
