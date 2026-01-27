@@ -800,10 +800,10 @@ export const appRouter = router({
       }),
 
     // 批量发送邮件
-    sendBatch: protectedProcedure
+    batchSend: protectedProcedure
       .input(z.object({
-        planId: z.number(),
         emails: z.array(z.object({
+          planId: z.number(),
           supplierId: z.number(),
           recipientEmail: z.string().email(),
           subject: z.string(),
@@ -812,21 +812,67 @@ export const appRouter = router({
       }))
       .mutation(async ({ ctx, input }) => {
         const { sendEmail } = await import('./emailService');
+        const { generateConfirmToken, calculateExpiryDate, generateConfirmationUrl } = await import('./confirmationService');
         const results = [];
 
         for (const email of input.emails) {
-          // 发送邮件
-          const emailResult = await sendEmail({
-            to: email.recipientEmail,
-            subject: email.subject,
-            html: email.content,
-          });
+          try {
+            // 创建发送记录
+            const logId = await db.createEmailSendLog({
+              userId: ctx.user.id,
+              planId: email.planId,
+              supplierId: email.supplierId,
+              recipientEmail: email.recipientEmail,
+              subject: email.subject,
+              content: email.content,
+              status: "pending",
+            });
 
-          results.push({
-            supplierId: email.supplierId,
-            success: emailResult.success,
-            error: emailResult.error,
-          });
+            // 创建供应商确认记录
+            const token = generateConfirmToken();
+            const expiresAt = calculateExpiryDate(30);
+            
+            // 检查是否已存在该计划和供应商的确认记录
+            const existingConfirmation = await db.getExistingConfirmation(email.planId, email.supplierId);
+            if (!existingConfirmation) {
+              await db.createSupplierConfirmation({
+                userId: ctx.user.id,
+                planId: email.planId,
+                supplierId: email.supplierId,
+                emailLogId: Number(logId),
+                confirmToken: token,
+                expiresAt,
+                status: 'pending',
+                dailySchedule: {},
+              } as any);
+            }
+
+            // 发送邮件
+            const emailResult = await sendEmail({
+              to: email.recipientEmail,
+              subject: email.subject,
+              html: email.content,
+            });
+
+            // 更新发送状态
+            await db.updateEmailSendLogStatus(
+              Number(logId),
+              emailResult.success ? "sent" : "failed",
+              emailResult.error
+            );
+
+            results.push({
+              supplierId: email.supplierId,
+              success: emailResult.success,
+              error: emailResult.error,
+            });
+          } catch (error) {
+            results.push({
+              supplierId: email.supplierId,
+              success: false,
+              error: error instanceof Error ? error.message : 'Unknown error',
+            });
+          }
         }
 
         return {
