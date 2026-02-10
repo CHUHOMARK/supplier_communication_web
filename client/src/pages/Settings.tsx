@@ -13,9 +13,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Settings as SettingsIcon, Trash2, AlertTriangle } from "lucide-react";
+import { Settings as SettingsIcon, Trash2, AlertTriangle, Mail } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
+import { SmtpAccountManagement } from "@/components/SmtpAccountManagement";
 
 export default function Settings() {
   const [resetOptions, setResetOptions] = useState({
@@ -74,6 +75,21 @@ export default function Settings() {
           管理系统数据和配置
         </p>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Mail className="h-5 w-5" />
+            SMTP邮箱配置
+          </CardTitle>
+          <CardDescription>
+            配置邮件发送账号，支持多账号管理
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <SmtpAccountManagement />
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

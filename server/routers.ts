@@ -661,7 +661,7 @@ export const appRouter = router({
         content: z.string(),
       }))
       .mutation(async ({ ctx, input }) => {
-        const { sendEmail } = await import('./emailService');
+        const { sendEmail, sendEmailWithAccount } = await import('./emailService');
         const { generateSupplierEmail } = await import('./emailGenerator');
         
         // 获取计划和供应商信息
@@ -777,13 +777,31 @@ export const appRouter = router({
           content: emailContent.body,
         });
 
+        // 获取默认SMTP账号
+        const smtpAccount = await db.getDefaultSmtpAccount(ctx.user.id);
+        
         // 发送邮件（带附件）
-        const result = await sendEmail({
-          to: input.recipientEmail,
-          subject: emailContent.subject,
-          html: emailContent.body,
-          attachments: emailContent.attachment ? [emailContent.attachment] : undefined,
-        });
+        let result;
+        if (smtpAccount) {
+          // 使用数据库中的SMTP账号
+          result = await sendEmailWithAccount(
+            {
+              to: input.recipientEmail,
+              subject: emailContent.subject,
+              html: emailContent.body,
+              attachments: emailContent.attachment ? [emailContent.attachment] : undefined,
+            },
+            smtpAccount
+          );
+        } else {
+          // 使用环境变量配置
+          result = await sendEmail({
+            to: input.recipientEmail,
+            subject: emailContent.subject,
+            html: emailContent.body,
+            attachments: emailContent.attachment ? [emailContent.attachment] : undefined,
+          });
+        }
 
         // 更新发送状态
         await db.updateEmailSendLogStatus(
@@ -811,7 +829,7 @@ export const appRouter = router({
         })),
       }))
       .mutation(async ({ ctx, input }) => {
-        const { sendEmail } = await import('./emailService');
+        const { sendEmail, sendEmailWithAccount } = await import('./emailService');
         const results = [];
 
         for (const email of input.emails) {
@@ -1232,6 +1250,107 @@ export const appRouter = router({
           token,
           confirmUrl,
           expiresAt,
+        };
+      }),
+  }),
+
+  // SMTP邮箱配置管理
+  smtp: router({    // 获取所有SMTP账号
+    list: protectedProcedure
+      .query(async ({ ctx }) => {
+        const accounts = await db.getSmtpAccountsByUserId(ctx.user.id);
+        // 不返回密码字段
+        return accounts.map(({ smtpPassword, ...account }) => account);
+      }),
+
+    // 获取默认SMTP账号
+    getDefault: protectedProcedure
+      .query(async ({ ctx }) => {
+        const account = await db.getDefaultSmtpAccount(ctx.user.id);
+        if (!account) {
+          return null;
+        }
+        // 不返回密码字段
+        const { smtpPassword, ...accountWithoutPassword } = account;
+        return accountWithoutPassword;
+      }),
+
+    // 创建SMTP账号
+    create: protectedProcedure
+      .input(z.object({
+        accountName: z.string().min(1, "账号名称不能为空"),
+        smtpHost: z.string().min(1, "SMTP服务器地址不能为空"),
+        smtpPort: z.number().int().positive("端口必须为正整数"),
+        smtpSecure: z.boolean().default(true),
+        smtpUser: z.string().min(1, "SMTP用户名不能为空"),
+        smtpPassword: z.string().min(1, "SMTP密码不能为空"),
+        fromEmail: z.string().email("发件人邮箱格式不正确"),
+        fromName: z.string().optional(),
+        isDefault: z.boolean().default(false),
+        isActive: z.boolean().default(true),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        await db.createSmtpAccount({
+          ...input,
+          userId: ctx.user.id,
+        });
+
+        return {
+          success: true,
+          message: "SMTP账号创建成功",
+        };
+      }),
+
+    // 更新SMTP账号
+    update: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+        accountName: z.string().min(1).optional(),
+        smtpHost: z.string().min(1).optional(),
+        smtpPort: z.number().int().positive().optional(),
+        smtpSecure: z.boolean().optional(),
+        smtpUser: z.string().min(1).optional(),
+        smtpPassword: z.string().min(1).optional(),
+        fromEmail: z.string().email().optional(),
+        fromName: z.string().optional(),
+        isDefault: z.boolean().optional(),
+        isActive: z.boolean().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const { id, ...data } = input;
+        await db.updateSmtpAccount(id, ctx.user.id, data);
+
+        return {
+          success: true,
+          message: "SMTP账号更新成功",
+        };
+      }),
+
+    // 删除SMTP账号
+    delete: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        await db.deleteSmtpAccount(input.id, ctx.user.id);
+
+        return {
+          success: true,
+          message: "SMTP账号删除成功",
+        };
+      }),
+
+    // 设置默认SMTP账号
+    setDefault: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        await db.setDefaultSmtpAccount(input.id, ctx.user.id);
+
+        return {
+          success: true,
+          message: "已设置为默认账号",
         };
       }),
   }),

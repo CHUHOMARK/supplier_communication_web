@@ -72,7 +72,64 @@ export function initializeFromEnv(): boolean {
 }
 
 /**
- * 发送邮件
+ * 使用指定的SMTP账号发送邮件
+ */
+export async function sendEmailWithAccount(
+  options: EmailOptions,
+  smtpAccount: {
+    smtpHost: string;
+    smtpPort: number;
+    smtpSecure: boolean;
+    smtpUser: string;
+    smtpPassword: string;
+    fromEmail: string;
+    fromName?: string | null;
+  }
+): Promise<{
+  success: boolean;
+  messageId?: string;
+  error?: string;
+}> {
+  try {
+    // 为每次发送创建一个新的传输器
+    const accountTransporter = nodemailer.createTransport({
+      host: smtpAccount.smtpHost,
+      port: smtpAccount.smtpPort,
+      secure: smtpAccount.smtpSecure,
+      auth: {
+        user: smtpAccount.smtpUser,
+        pass: smtpAccount.smtpPassword,
+      },
+    });
+
+    const from = smtpAccount.fromName
+      ? `${smtpAccount.fromName} <${smtpAccount.fromEmail}>`
+      : smtpAccount.fromEmail;
+
+    const info = await accountTransporter.sendMail({
+      from,
+      to: options.to,
+      subject: options.subject,
+      text: options.text,
+      html: options.html,
+      attachments: options.attachments,
+    });
+
+    return {
+      success: true,
+      messageId: info.messageId,
+    };
+  } catch (error) {
+    console.error("[EmailService] Failed to send email with account:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "邮件发送失败",
+    };
+  }
+}
+
+/**
+ * 发送邮件（使用环境变量配置）
  */
 export async function sendEmail(options: EmailOptions): Promise<{
   success: boolean;

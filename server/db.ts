@@ -13,6 +13,7 @@ import {
   supplierConfirmations,
   confirmationModifications,
   purchaseOrders,
+  smtpAccounts,
   InsertMaterialPlan,
   InsertMaterialItem,
   InsertSupplier,
@@ -20,6 +21,7 @@ import {
   InsertGeneratedEmail,
   InsertEmailSendLog,
   InsertConfirmationModification,
+  InsertSmtpAccount,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -1174,4 +1176,141 @@ export async function updateMaterialSupplierShares(
   }
 
   return shares.length;
+}
+
+/**
+ * SMTP账号管理函数
+ */
+
+// 创建SMTP账号
+export async function createSmtpAccount(data: InsertSmtpAccount) {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  // 如果设置为默认账号，先将其他账号的isDefault设置为false
+  if (data.isDefault) {
+    await db.execute(
+      sql`UPDATE smtp_accounts SET isDefault = false WHERE userId = ${data.userId}`
+    );
+  }
+
+  const result = await db.insert(smtpAccounts).values(data);
+  return result;
+}
+
+// 获取用户的所有SMTP账号
+export async function getSmtpAccountsByUserId(userId: number) {
+  const db = await getDb();
+  if (!db) {
+    return [];
+  }
+
+  const accounts = await db
+    .select()
+    .from(smtpAccounts)
+    .where(eq(smtpAccounts.userId, userId))
+    .orderBy(desc(smtpAccounts.isDefault), desc(smtpAccounts.createdAt));
+
+  return accounts;
+}
+
+// 获取默认SMTP账号
+export async function getDefaultSmtpAccount(userId: number) {
+  const db = await getDb();
+  if (!db) {
+    return null;
+  }
+
+  const accounts = await db
+    .select()
+    .from(smtpAccounts)
+    .where(
+      and(
+        eq(smtpAccounts.userId, userId),
+        eq(smtpAccounts.isDefault, true),
+        eq(smtpAccounts.isActive, true)
+      )
+    )
+    .limit(1);
+
+  return accounts[0] || null;
+}
+
+// 根据ID获取SMTP账号
+export async function getSmtpAccountById(id: number, userId: number) {
+  const db = await getDb();
+  if (!db) {
+    return null;
+  }
+
+  const accounts = await db
+    .select()
+    .from(smtpAccounts)
+    .where(and(eq(smtpAccounts.id, id), eq(smtpAccounts.userId, userId)))
+    .limit(1);
+
+  return accounts[0] || null;
+}
+
+// 更新SMTP账号
+export async function updateSmtpAccount(
+  id: number,
+  userId: number,
+  data: Partial<InsertSmtpAccount>
+) {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  // 如果设置为默认账号，先将其他账号的isDefault设置为false
+  if (data.isDefault) {
+    await db.execute(
+      sql`UPDATE smtp_accounts SET isDefault = false WHERE userId = ${userId} AND id != ${id}`
+    );
+  }
+
+  await db
+    .update(smtpAccounts)
+    .set(data)
+    .where(and(eq(smtpAccounts.id, id), eq(smtpAccounts.userId, userId)));
+
+  return true;
+}
+
+// 删除SMTP账号
+export async function deleteSmtpAccount(id: number, userId: number) {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  await db
+    .delete(smtpAccounts)
+    .where(and(eq(smtpAccounts.id, id), eq(smtpAccounts.userId, userId)));
+
+  return true;
+}
+
+// 设置默认SMTP账号
+export async function setDefaultSmtpAccount(id: number, userId: number) {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  // 先将所有账号的isDefault设置为false
+  await db.execute(
+    sql`UPDATE smtp_accounts SET isDefault = false WHERE userId = ${userId}`
+  );
+
+  // 将指定账号设置为默认
+  await db
+    .update(smtpAccounts)
+    .set({ isDefault: true })
+    .where(and(eq(smtpAccounts.id, id), eq(smtpAccounts.userId, userId)));
+
+  return true;
 }

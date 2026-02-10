@@ -1,4 +1,4 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, json, decimal, unique, index, check } from "drizzle-orm/mysql-core";
+import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, json, decimal, unique, index, check, boolean } from "drizzle-orm/mysql-core";
 import { sql } from "drizzle-orm";
 
 /**
@@ -228,3 +228,29 @@ export const confirmationModifications = mysqlTable("confirmation_modifications"
 
 export type ConfirmationModification = typeof confirmationModifications.$inferSelect;
 export type InsertConfirmationModification = typeof confirmationModifications.$inferInsert;
+
+/**
+ * SMTP邮箱配置表
+ */
+export const smtpAccounts = mysqlTable("smtp_accounts", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(), // 用户ID
+  accountName: varchar("accountName", { length: 255 }).notNull(), // 账号名称（用于标识）
+  smtpHost: varchar("smtpHost", { length: 255 }).notNull(), // SMTP服务器地址
+  smtpPort: int("smtpPort").notNull(), // SMTP端口
+  smtpSecure: boolean("smtpSecure").notNull().default(true), // 是否使用SSL/TLS
+  smtpUser: varchar("smtpUser", { length: 255 }).notNull(), // SMTP用户名
+  smtpPassword: text("smtpPassword").notNull(), // SMTP密码（加密存储）
+  fromEmail: varchar("fromEmail", { length: 320 }).notNull(), // 发件人邮箱地址
+  fromName: varchar("fromName", { length: 255 }), // 发件人名称
+  isDefault: boolean("isDefault").notNull().default(false), // 是否为默认账号
+  isActive: boolean("isActive").notNull().default(true), // 是否启用
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => ({
+  userIdIdx: index("idx_smtp_user_id").on(table.userId),
+  isDefaultIdx: index("idx_smtp_is_default").on(table.isDefault),
+}));
+
+export type SmtpAccount = typeof smtpAccounts.$inferSelect;
+export type InsertSmtpAccount = typeof smtpAccounts.$inferInsert;
