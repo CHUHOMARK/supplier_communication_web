@@ -1,169 +1,163 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { trpc } from "@/lib/trpc";
 import {
-  LineChart,
-  Line,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
+  PieChart,
+  Pie,
+  Cell,
   ResponsiveContainer,
+  Legend,
+  Tooltip,
 } from "recharts";
 
+const COLORS = {
+  confirmed: "#10b981", // 绿色 - 已确认
+  unconfirmed: "#f59e0b", // 橙色 - 未确认
+};
+
 export function DashboardCharts() {
-  const { data: emailTrend, isLoading: emailLoading } = trpc.dashboard.getEmailSendTrend.useQuery({ days: 30 });
-  const { data: confirmTrend, isLoading: confirmLoading } = trpc.dashboard.getConfirmationRateTrend.useQuery({ days: 30 });
-  const { data: responseStats, isLoading: responseLoading } = trpc.dashboard.getSupplierResponseTimeStats.useQuery();
+  const { data: confirmStats, isLoading } = trpc.dashboard.getSupplierConfirmationStats.useQuery();
+
+  // 准备饼图数据
+  const chartData = confirmStats
+    ? [
+        { name: "已确认供应商", value: confirmStats.confirmed, color: COLORS.confirmed },
+        { name: "未确认供应商", value: confirmStats.unconfirmed, color: COLORS.unconfirmed },
+      ].filter((item) => item.value > 0) // 只显示有数据的部分
+    : [];
+
+  // 自定义标签渲染函数
+  const renderCustomLabel = ({
+    cx,
+    cy,
+    midAngle,
+    innerRadius,
+    outerRadius,
+    percent,
+  }: any) => {
+    const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+    const x = cx + radius * Math.cos(-midAngle * (Math.PI / 180));
+    const y = cy + radius * Math.sin(-midAngle * (Math.PI / 180));
+
+    return (
+      <text
+        x={x}
+        y={y}
+        fill="white"
+        textAnchor={x > cx ? "start" : "end"}
+        dominantBaseline="central"
+        className="font-semibold"
+      >
+        {`${(percent * 100).toFixed(0)}%`}
+      </text>
+    );
+  };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
-      {/* 邮件发送量趋势 */}
+    <div className="mt-8">
       <Card>
         <CardHeader>
-          <CardTitle>邮件发送量趋势</CardTitle>
-          <CardDescription>最近30天的邮件发送统计</CardDescription>
+          <CardTitle>供应商确认状态</CardTitle>
+          <CardDescription>已确认和未确认供应商的数量统计</CardDescription>
         </CardHeader>
         <CardContent>
-          {emailLoading ? (
-            <div className="h-[300px] flex items-center justify-center">
+          {isLoading ? (
+            <div className="h-[400px] flex items-center justify-center">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
             </div>
-          ) : emailTrend && emailTrend.length > 0 ? (
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={emailTrend}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis
-                  dataKey="date"
-                  tickFormatter={(value) => {
-                    const date = new Date(value);
-                    return `${date.getMonth() + 1}/${date.getDate()}`;
-                  }}
-                />
-                <YAxis />
-                <Tooltip
-                  labelFormatter={(value) => {
-                    const date = new Date(value as string);
-                    return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`;
-                  }}
-                />
-                <Legend />
-                <Line
-                  type="monotone"
-                  dataKey="count"
-                  name="发送数量"
-                  stroke="#3b82f6"
-                  strokeWidth={2}
-                  dot={{ fill: "#3b82f6" }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          ) : (
-            <div className="h-[300px] flex items-center justify-center text-muted-foreground">
-              暂无数据
-            </div>
-          )}
-        </CardContent>
-      </Card>
+          ) : chartData.length > 0 ? (
+            <div className="flex flex-col lg:flex-row items-center gap-8">
+              {/* 饼图 */}
+              <div className="flex-1 w-full">
+                <ResponsiveContainer width="100%" height={400}>
+                  <PieChart>
+                    <Pie
+                      data={chartData}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={renderCustomLabel}
+                      outerRadius={120}
+                      fill="#8884d8"
+                      dataKey="value"
+                    >
+                      {chartData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
 
-      {/* 确认率趋势 */}
-      <Card>
-        <CardHeader>
-          <CardTitle>确认率趋势</CardTitle>
-          <CardDescription>最近30天的供应商确认统计</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {confirmLoading ? (
-            <div className="h-[300px] flex items-center justify-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-            </div>
-          ) : confirmTrend && confirmTrend.length > 0 ? (
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={confirmTrend}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis
-                  dataKey="date"
-                  tickFormatter={(value) => {
-                    const date = new Date(value);
-                    return `${date.getMonth() + 1}/${date.getDate()}`;
-                  }}
-                />
-                <YAxis yAxisId="left" />
-                <YAxis yAxisId="right" orientation="right" />
-                <Tooltip
-                  labelFormatter={(value) => {
-                    const date = new Date(value as string);
-                    return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`;
-                  }}
-                />
-                <Legend />
-                <Line
-                  yAxisId="left"
-                  type="monotone"
-                  dataKey="total"
-                  name="总数"
-                  stroke="#94a3b8"
-                  strokeWidth={2}
-                />
-                <Line
-                  yAxisId="left"
-                  type="monotone"
-                  dataKey="confirmed"
-                  name="已确认"
-                  stroke="#10b981"
-                  strokeWidth={2}
-                />
-                <Line
-                  yAxisId="right"
-                  type="monotone"
-                  dataKey="rate"
-                  name="确认率(%)"
-                  stroke="#f59e0b"
-                  strokeWidth={2}
-                  dot={{ fill: "#f59e0b" }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          ) : (
-            <div className="h-[300px] flex items-center justify-center text-muted-foreground">
-              暂无数据
-            </div>
-          )}
-        </CardContent>
-      </Card>
+              {/* 统计卡片 */}
+              <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-4 w-full">
+                <Card className="border-2 border-green-200 bg-green-50">
+                  <CardHeader className="pb-3">
+                    <CardDescription className="text-green-700">已确认供应商</CardDescription>
+                    <CardTitle className="text-3xl text-green-600">
+                      {confirmStats?.confirmed || 0}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-xs text-green-600">
+                      {confirmStats?.total
+                        ? `占比 ${((confirmStats.confirmed / confirmStats.total) * 100).toFixed(1)}%`
+                        : "暂无数据"}
+                    </p>
+                  </CardContent>
+                </Card>
 
-      {/* 供应商响应时间统计 */}
-      <Card className="lg:col-span-2">
-        <CardHeader>
-          <CardTitle>供应商平均响应时间</CardTitle>
-          <CardDescription>各供应商的平均响应时间（小时）</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {responseLoading ? (
-            <div className="h-[300px] flex items-center justify-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                <Card className="border-2 border-orange-200 bg-orange-50">
+                  <CardHeader className="pb-3">
+                    <CardDescription className="text-orange-700">未确认供应商</CardDescription>
+                    <CardTitle className="text-3xl text-orange-600">
+                      {confirmStats?.unconfirmed || 0}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-xs text-orange-600">
+                      {confirmStats?.total
+                        ? `占比 ${((confirmStats.unconfirmed / confirmStats.total) * 100).toFixed(1)}%`
+                        : "暂无数据"}
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card className="border-2 border-blue-200 bg-blue-50">
+                  <CardHeader className="pb-3">
+                    <CardDescription className="text-blue-700">供应商总数</CardDescription>
+                    <CardTitle className="text-3xl text-blue-600">
+                      {confirmStats?.total || 0}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-xs text-blue-600">
+                      {confirmStats?.confirmed && confirmStats?.total
+                        ? `确认率 ${((confirmStats.confirmed / confirmStats.total) * 100).toFixed(1)}%`
+                        : "暂无数据"}
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
             </div>
-          ) : responseStats && responseStats.length > 0 ? (
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={responseStats}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis
-                  dataKey="supplierName"
-                  angle={-45}
-                  textAnchor="end"
-                  height={100}
-                />
-                <YAxis label={{ value: "小时", angle: -90, position: "insideLeft" }} />
-                <Tooltip />
-                <Legend />
-                <Bar dataKey="avgResponseTime" name="平均响应时间" fill="#8b5cf6" />
-              </BarChart>
-            </ResponsiveContainer>
           ) : (
-            <div className="h-[300px] flex items-center justify-center text-muted-foreground">
-              暂无数据
+            <div className="h-[400px] flex flex-col items-center justify-center text-muted-foreground">
+              <svg
+                className="w-16 h-16 mb-4 text-gray-300"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                />
+              </svg>
+              <p className="text-lg font-medium">暂无供应商确认数据</p>
+              <p className="text-sm mt-2">请先上传物料计划并生成邮件发送给供应商</p>
             </div>
           )}
         </CardContent>

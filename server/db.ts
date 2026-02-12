@@ -701,6 +701,52 @@ export async function getConfirmationsByPlanId(planId: number) {
 }
 
 /**
+ * 获取供应商确认状态统计（已确认/未确认供应商数量）
+ */
+export async function getSupplierConfirmationStats(userId: number) {
+  const db = await getDb();
+  if (!db) {
+    return {
+      confirmed: 0,
+      unconfirmed: 0,
+      total: 0,
+    };
+  }
+
+  // 获取所有确认记录
+  const confirmations = await db
+    .select()
+    .from(supplierConfirmations)
+    .where(eq(supplierConfirmations.userId, userId));
+
+  // 统计已确认和未确认的供应商数量
+  const confirmedSuppliers = new Set<number>();
+  const unconfirmedSuppliers = new Set<number>();
+
+  confirmations.forEach((record) => {
+    const status = record.status || "pending";
+    if (status === "confirmed" || status === "partial" || status === "modified") {
+      confirmedSuppliers.add(record.supplierId);
+    } else if (status === "pending" || status === "rejected") {
+      unconfirmedSuppliers.add(record.supplierId);
+    }
+  });
+
+  // 移除重复（如果一个供应商既有确认又有未确认，优先计为已确认）
+  unconfirmedSuppliers.forEach((supplierId) => {
+    if (confirmedSuppliers.has(supplierId)) {
+      unconfirmedSuppliers.delete(supplierId);
+    }
+  });
+
+  return {
+    confirmed: confirmedSuppliers.size,
+    unconfirmed: unconfirmedSuppliers.size,
+    total: confirmedSuppliers.size + unconfirmedSuppliers.size,
+  };
+}
+
+/**
  * 获取用户的所有确认记录统计
  */
 export async function getConfirmationStatsByUserId(userId: number) {

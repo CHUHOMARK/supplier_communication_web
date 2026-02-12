@@ -1099,3 +1099,35 @@
 - ✅ 验证受保护路由数量（7个）
 - ✅ 验证公开路由数量（3个）
 - ✅ 验证仪表盘模块配置（6个）
+
+
+## 新任务 - 修改数据可视化图表 ✅完成
+
+- [x] 移除邮件发送量趋势图
+- [x] 移除确认率趋势图
+- [x] 移除供应商平均响应时间图
+- [x] 添加已确认/未确认供应商数量统计API
+- [x] 创建供应商确认状态可视化图表（饼图 + 统计卡片）
+- [x] 更新DashboardCharts组件
+- [x] 编写测试验证新图表功能（6个测试全部通过）
+
+### 实现内容
+- [x] 删除三个API端点：getEmailSendTrend, getConfirmationRateTrend, getSupplierResponseTimeStats
+- [x] 在db.ts中添加getSupplierConfirmationStats函数
+  - [x] 统计已确认供应商数量（confirmed/partial/modified状态）
+  - [x] 统计未确认供应商数量（pending/rejected状态）
+  - [x] 去重处理（同一供应商优先计为已确认）
+- [x] 在routers.ts中添加getSupplierConfirmationStats API
+- [x] 重写DashboardCharts组件
+  - [x] 使用Recharts的PieChart组件
+  - [x] 添加自定义标签显示百分比
+  - [x] 添加3个统计卡片（已确认/未确认/总数）
+  - [x] 添加空状态提示
+
+### 测试结果
+- ✅ 6个单元测试全部通过
+- ✅ 验证API返回正确的统计数据结构
+- ✅ 验证总数等于已确认加未确认
+- ✅ 验证新用户零值显示
+- ✅ 验证数据库失败时的容错处理
+- ✅ 验证认证保护

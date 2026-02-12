@@ -75,30 +75,10 @@ export const appRouter = router({
         };
       }),
     
-    // 获取邮件发送量趋势数据
-    getEmailSendTrend: protectedProcedure
-      .input(z.object({
-        days: z.number().min(7).max(90).default(30),
-      }).optional())
-      .query(async ({ ctx, input }) => {
-        const days = input?.days || 30;
-        return await db.getEmailSendTrend(ctx.user.id, days);
-      }),
-    
-    // 获取确认率趋势数据
-    getConfirmationRateTrend: protectedProcedure
-      .input(z.object({
-        days: z.number().min(7).max(90).default(30),
-      }).optional())
-      .query(async ({ ctx, input }) => {
-        const days = input?.days || 30;
-        return await db.getConfirmationRateTrend(ctx.user.id, days);
-      }),
-    
-    // 获取供应商响应时间统计
-    getSupplierResponseTimeStats: protectedProcedure
+    // 获取供应商确认状态统计
+    getSupplierConfirmationStats: protectedProcedure
       .query(async ({ ctx }) => {
-        return await db.getSupplierResponseTimeStats(ctx.user.id);
+        return await db.getSupplierConfirmationStats(ctx.user.id);
       }),
   }),
   
