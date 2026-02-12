@@ -15,6 +15,7 @@ import { Register } from "./pages/Register";
 import UploadPlan from "./pages/UploadPlan";
 import Suppliers from "./pages/Suppliers";
 import Emails from "./pages/Emails";
+import ERPImport from "./pages/ERPImport";
 import { useAuth } from "./_core/hooks/useAuth";
 import { useEffect } from "react";
 import { useLocation } from "wouter";
@@ -74,6 +75,9 @@ function Router() {
       </Route>
       <Route path={"/monitor"}>
         <ProtectedRoute component={ConfirmationMonitor} />
+      </Route>
+      <Route path={"/erp-import"}>
+        <ProtectedRoute component={ERPImport} />
       </Route>
       <Route path={"/404"} component={NotFound} />
       <Route component={NotFound} />

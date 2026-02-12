@@ -1540,6 +1540,77 @@ export const appRouter = router({
         };
       }),
   }),
+
+  // ERP实际到货导入
+  erp: router({
+    // 导入ERP实际到货Excel
+    importData: protectedProcedure
+      .input(z.object({
+        fileContent: z.string(), // Base64编码的Excel文件
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const { parseActualReceiptExcel } = await import("./erpParser");
+        
+        // 解析Excel
+        const receipts = await parseActualReceiptExcel(input.fileContent);
+        
+        // 添加userId并转换actualQuantity为字符串
+        const receiptsWithUserId = receipts.map(receipt => ({
+          ...receipt,
+          userId: ctx.user.id,
+          actualQuantity: receipt.actualQuantity.toString(),
+        }));
+        
+        // 保存到数据库
+        await db.createActualReceipts(receiptsWithUserId);
+        
+        return {
+          success: true,
+          message: `成功导入${receipts.length}条到货记录`,
+          count: receipts.length,
+        };
+      }),
+
+    // 获取实际到货记录
+    getReceipts: protectedProcedure
+      .query(async ({ ctx }) => {
+        const receipts = await db.getActualReceiptsByUserId(ctx.user.id);
+        return receipts;
+      }),
+
+    // 删除实际到货记录
+    deleteReceipt: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        await db.deleteActualReceipt(input.id, ctx.user.id);
+        return {
+          success: true,
+          message: "删除成功",
+        };
+      }),
+
+    // 获取供应商逾期统计
+    getOverdueAnalysis: protectedProcedure
+      .query(async ({ ctx }) => {
+        const analysis = await db.getSupplierOverdueAnalysis(ctx.user.id);
+        return analysis;
+      }),
+
+    // 获取确认记录的实际到货信息
+    getReceiptsForConfirmations: protectedProcedure
+      .input(z.object({
+        confirmationIds: z.array(z.number()),
+      }))
+      .query(async ({ ctx, input }) => {
+        const receipts = await db.getActualReceiptsForConfirmations(
+          ctx.user.id,
+          input.confirmationIds
+        );
+        return receipts;
+      }),
+  }),
 });
 
 export type AppRouter = typeof appRouter;

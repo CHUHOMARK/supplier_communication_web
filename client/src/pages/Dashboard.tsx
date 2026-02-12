@@ -13,7 +13,8 @@ import {
   BarChart3, 
   Settings,
   LogOut,
-  User
+  User,
+  Database
 } from "lucide-react";
 
 export default function Dashboard() {
@@ -65,6 +66,14 @@ export default function Dashboard() {
       href: "/monitor",
       color: "text-red-600",
       bgColor: "bg-red-50",
+    },
+    {
+      title: "ERP导入",
+      description: "导入ERP实际到货数据，对比供应商承诺交期",
+      icon: Database,
+      href: "/erp-import",
+      color: "text-cyan-600",
+      bgColor: "bg-cyan-50",
     },
     {
       title: "系统设置",

@@ -15,6 +15,7 @@ import {
   purchaseOrders,
   smtpAccounts,
   notifications,
+  actualReceipts,
   InsertMaterialPlan,
   InsertMaterialItem,
   InsertSupplier,
@@ -24,6 +25,7 @@ import {
   InsertConfirmationModification,
   InsertSmtpAccount,
   InsertNotification,
+  InsertActualReceipt,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -1707,4 +1709,284 @@ export async function deleteNotification(notificationId: number, userId: number)
     ));
 
   return true;
+}
+
+
+// ==================== ERP实际到货相关函数 ====================
+
+/**
+ * 批量创建实际到货记录
+ */
+export async function createActualReceipts(receipts: InsertActualReceipt[]) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not initialized");
+  return await db.insert(actualReceipts).values(receipts);
+}
+
+/**
+ * 获取用户的所有实际到货记录
+ */
+export async function getActualReceiptsByUserId(userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not initialized");
+  return await db
+    .select()
+    .from(actualReceipts)
+    .where(eq(actualReceipts.userId, userId))
+    .orderBy(desc(actualReceipts.businessDate));
+}
+
+/**
+ * 根据物料代码和日期范围获取实际到货记录
+ */
+export async function getActualReceiptsByMaterialAndDateRange(
+  userId: number,
+  materialCode: string,
+  startDate: string,
+  endDate: string
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not initialized");
+  return await db
+    .select()
+    .from(actualReceipts)
+    .where(
+      and(
+        eq(actualReceipts.userId, userId),
+        eq(actualReceipts.materialCode, materialCode),
+        sql`${actualReceipts.businessDate} >= ${startDate}`,
+        sql`${actualReceipts.businessDate} <= ${endDate}`
+      )
+    )
+    .orderBy(asc(actualReceipts.businessDate));
+}
+
+/**
+ * 删除实际到货记录
+ */
+export async function deleteActualReceipt(id: number, userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not initialized");
+  return await db
+    .delete(actualReceipts)
+    .where(and(eq(actualReceipts.id, id), eq(actualReceipts.userId, userId)));
+}
+
+/**
+ * 获取供应商逾期统计
+ * 对比supplier_confirmations中的确认日期与actual_receipts中的业务日期
+ * 计算每个供应商的平均逾期天数
+ */
+export async function getSupplierOverdueAnalysis(userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not initialized");
+  
+  // 查询所有确认记录和对应的实际到货记录
+  const confirmations = await db
+    .select({
+      confirmationId: supplierConfirmations.id,
+      supplierId: supplierConfirmations.supplierId,
+      supplierName: suppliers.supplierName,
+      planId: supplierConfirmations.planId,
+      confirmedSchedule: supplierConfirmations.dailySchedule,
+      confirmedAt: supplierConfirmations.confirmedAt,
+    })
+    .from(supplierConfirmations)
+    .leftJoin(suppliers, eq(supplierConfirmations.supplierId, suppliers.id))
+    .where(
+      and(
+        eq(supplierConfirmations.userId, userId),
+        inArray(supplierConfirmations.status, ["confirmed", "partial", "modified"])
+      )
+    );
+  
+  // 获取所有实际到货记录
+  const receipts = await getActualReceiptsByUserId(userId);
+  
+  // 构建物料代码 -> 到货记录的映射
+  const receiptMap = new Map<string, Map<string, number>>();
+  receipts.forEach((receipt: any) => {
+    if (!receiptMap.has(receipt.materialCode)) {
+      receiptMap.set(receipt.materialCode, new Map());
+    }
+    receiptMap.get(receipt.materialCode)!.set(receipt.businessDate, parseFloat(receipt.actualQuantity));
+  });
+  
+  // 计算每个供应商的逾期情况
+  const supplierOverdueMap = new Map<number, {
+    supplierId: number;
+    supplierName: string;
+    totalOverdueDays: number;
+    overdueCount: number;
+    onTimeCount: number;
+  }>();
+  
+  confirmations.forEach((confirmation: any) => {
+    if (!confirmation.confirmedSchedule || !confirmation.supplierId) return;
+    
+    try {
+      const schedule = typeof confirmation.confirmedSchedule === 'string'
+        ? JSON.parse(confirmation.confirmedSchedule)
+        : confirmation.confirmedSchedule;
+      // 暂时跳过，因为没有materialCode字段
+      // const materialReceipts = receiptMap.get(confirmation.materialCode);
+      
+      // if (!materialReceipts) return;
+      
+      // 遍历确认的每个日期
+      Object.entries(schedule).forEach(([confirmedDate, quantity]: [string, any]) => {
+        if (typeof quantity !== 'number' || quantity <= 0) return;
+        
+        // 查找实际到货日期
+        let actualDate: string | null = null;
+        // for (const [receiptDate, receiptQty] of materialReceipts.entries()) {
+        //   if (receiptQty > 0) {
+        //     actualDate = receiptDate;
+        //     break;
+        //   }
+        // }
+        
+        if (!actualDate) return;
+        
+        // 计算逾期天数
+        const confirmedTime = new Date(confirmedDate).getTime();
+        const actualTime = new Date(actualDate).getTime();
+        const overdueDays = Math.floor((actualTime - confirmedTime) / (1000 * 60 * 60 * 24));
+        
+        // 更新供应商统计
+        if (!supplierOverdueMap.has(confirmation.supplierId!)) {
+          supplierOverdueMap.set(confirmation.supplierId!, {
+            supplierId: confirmation.supplierId!,
+            supplierName: confirmation.supplierName || "未知供应商",
+            totalOverdueDays: 0,
+            overdueCount: 0,
+            onTimeCount: 0,
+          });
+        }
+        
+        const stats = supplierOverdueMap.get(confirmation.supplierId!)!;
+        if (overdueDays > 0) {
+          stats.totalOverdueDays += overdueDays;
+          stats.overdueCount++;
+        } else {
+          stats.onTimeCount++;
+        }
+      });
+    } catch (error) {
+      console.error(`解析确认记录${confirmation.confirmationId}的schedule失败:`, error);
+    }
+  });
+  
+  // 计算平均逾期天数
+  return Array.from(supplierOverdueMap.values()).map(stats => ({
+    ...stats,
+    averageOverdueDays: stats.overdueCount > 0 
+      ? Math.round(stats.totalOverdueDays / stats.overdueCount * 10) / 10 
+      : 0,
+  }));
+}
+
+/**
+ * 获取确认记录的实际到货信息
+ * 用于在确认监控页面显示ERP实收到货数据
+ */
+export async function getActualReceiptsForConfirmations(userId: number, confirmationIds: number[]) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not initialized");
+  
+  // 查询确认记录，关联materialSupplierMappings获取物料代码
+  const confirmations = await db
+    .select({
+      id: supplierConfirmations.id,
+      planId: supplierConfirmations.planId,
+      supplierId: supplierConfirmations.supplierId,
+      confirmedSchedule: supplierConfirmations.dailySchedule,
+      materialCode: materialSupplierMappings.materialCode,
+    })
+    .from(supplierConfirmations)
+    .leftJoin(
+      materialSupplierMappings,
+      and(
+        eq(supplierConfirmations.supplierId, materialSupplierMappings.supplierId),
+        eq(supplierConfirmations.planId, materialSupplierMappings.planId)
+      )
+    )
+    .where(
+      and(
+        eq(supplierConfirmations.userId, userId),
+        inArray(supplierConfirmations.id, confirmationIds)
+      )
+    );
+  
+  // 获取所有相关的物料代码
+  const materialCodes = Array.from(new Set(confirmations.map((c: any) => c.materialCode).filter((code: any) => code)));
+  
+  if (materialCodes.length === 0) {
+    return confirmations.map((c: any) => ({
+      confirmationId: c.id,
+      materialCode: null,
+      actualReceiptDate: null,
+      actualQuantity: 0,
+      overdueDays: 0,
+      isOverdue: false,
+    }));
+  }
+  
+  // 查询这些物料的实际到货记录
+  const receipts = await db
+    .select()
+    .from(actualReceipts)
+    .where(
+      and(
+        eq(actualReceipts.userId, userId),
+        inArray(actualReceipts.materialCode, materialCodes as string[])
+      )
+    );
+  
+  // 构建返回结果
+  return confirmations.map((confirmation: any) => {
+    const materialReceipts = receipts.filter((r: any) => r.materialCode === confirmation.materialCode);
+    
+    // 解析确认的交期
+    let confirmedDates: string[] = [];
+    try {
+      if (confirmation.confirmedSchedule) {
+        const schedule = typeof confirmation.confirmedSchedule === 'string' 
+          ? JSON.parse(confirmation.confirmedSchedule)
+          : confirmation.confirmedSchedule;
+        confirmedDates = Object.keys(schedule);
+      }
+    } catch (error) {
+      console.error(`解析确认记录${confirmation.id}的schedule失败:`, error);
+    }
+    
+    // 查找最早的实际到货日期
+    let earliestReceiptDate: string | null = null;
+    let totalActualQuantity = 0;
+    
+    materialReceipts.forEach((receipt: any) => {
+      totalActualQuantity += parseFloat(receipt.actualQuantity);
+      if (!earliestReceiptDate || receipt.businessDate < earliestReceiptDate) {
+        earliestReceiptDate = receipt.businessDate;
+      }
+    });
+    
+    // 计算逾期天数（如果有实际到货且有确认日期）
+    let overdueDays = 0;
+    if (earliestReceiptDate && confirmedDates.length > 0) {
+      const earliestConfirmedDate = confirmedDates.sort()[0];
+      const confirmedTime = new Date(earliestConfirmedDate).getTime();
+      const actualTime = new Date(earliestReceiptDate).getTime();
+      overdueDays = Math.floor((actualTime - confirmedTime) / (1000 * 60 * 60 * 24));
+    }
+    
+    return {
+      confirmationId: confirmation.id,
+      materialCode: confirmation.materialCode,
+      actualReceiptDate: earliestReceiptDate,
+      actualQuantity: totalActualQuantity,
+      overdueDays,
+      isOverdue: overdueDays > 0,
+    };
+  });
 }

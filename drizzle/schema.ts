@@ -279,3 +279,27 @@ export const notifications = mysqlTable("notifications", {
 
 export type Notification = typeof notifications.$inferSelect;
 export type InsertNotification = typeof notifications.$inferInsert;
+
+
+/**
+ * ERP实际到货记录表
+ */
+export const actualReceipts = mysqlTable("actual_receipts", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(), // 用户ID
+  materialCode: varchar("materialCode", { length: 100 }).notNull(), // 料号
+  businessDate: varchar("businessDate", { length: 20 }).notNull(), // 业务日期 (YYYY-MM-DD)
+  actualQuantity: decimal("actualQuantity", { precision: 15, scale: 4 }).notNull(), // 实收数量(计价单位)
+  supplierName: varchar("supplierName", { length: 255 }), // 供应商名称（可选，用于关联）
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => ({
+  userIdIdx: index("idx_actual_receipt_user_id").on(table.userId),
+  materialCodeIdx: index("idx_actual_receipt_material_code").on(table.materialCode),
+  businessDateIdx: index("idx_actual_receipt_business_date").on(table.businessDate),
+  // 唯一性约束：同一用户的同一料号在同一业务日期只能有一条记录
+  uniqueReceipt: unique("unique_receipt").on(table.userId, table.materialCode, table.businessDate),
+}));
+
+export type ActualReceipt = typeof actualReceipts.$inferSelect;
+export type InsertActualReceipt = typeof actualReceipts.$inferInsert;
