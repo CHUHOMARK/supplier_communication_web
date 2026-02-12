@@ -1443,7 +1443,16 @@ export async function createUser(data: {
       lastSignedIn: new Date(),
     });
     
-    return result;
+    // 返回包含id的用户对象
+    const insertId = result[0].insertId;
+    return {
+      id: insertId,
+      username: data.username,
+      name: data.name || data.username,
+      email: data.email || null,
+      loginMethod: 'local',
+      role: 'user' as const,
+    };
   } catch (error) {
     console.error("[Database] Failed to create user:", error);
     throw error;
@@ -1734,11 +1743,32 @@ export async function deleteNotification(notificationId: number, userId: number)
 
 /**
  * 批量创建实际到货记录
+ * 为避免SQL语句过长，分批插入
+ * 如果遇到重复记录，则更新actualQuantity和supplierName
  */
 export async function createActualReceipts(receipts: InsertActualReceipt[]) {
   const db = await getDb();
   if (!db) throw new Error("Database not initialized");
-  return await db.insert(actualReceipts).values(receipts);
+  
+  // 分批插入，每批100条
+  const batchSize = 100;
+  const results = [];
+  
+  for (let i = 0; i < receipts.length; i += batchSize) {
+    const batch = receipts.slice(i, i + batchSize);
+    const result = await db.insert(actualReceipts)
+      .values(batch)
+      .onDuplicateKeyUpdate({
+        set: {
+          actualQuantity: sql`VALUES(actualQuantity)`,
+          supplierName: sql`VALUES(supplierName)`,
+          updatedAt: sql`NOW()`,
+        },
+      });
+    results.push(result);
+  }
+  
+  return results[results.length - 1]; // 返回最后一批的结果
 }
 
 /**

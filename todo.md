@@ -1396,3 +1396,12 @@
   - 添加AlertCircle图标到格式要求提示
   - 使用<strong>标签高亮关键信息
   - 保留完整的导入历史记录显示
+
+
+## 紧急修复 - ERP导入数据库插入错误
+
+- [x] 检查actual_receipts表的schema定义
+- [x] 检查createActualReceipts函数的插入逻辑
+- [x] 修复字段类型不匹配问题 - 修复createUser函数返回值，确保包含id字段
+- [x] 修复supplierName字段的处理逻辑 - 明确指定字段映射
+- [x] 测试导入功能 - 分批插入250条记录成功

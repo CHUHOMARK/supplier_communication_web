@@ -1607,11 +1607,13 @@ export const appRouter = router({
         // 解析Excel
         const receipts = await parseActualReceiptExcel(input.fileContent);
         
-        // 添加userId并转换actualQuantity为字符串
+        // 添加userId
         const receiptsWithUserId = receipts.map(receipt => ({
-          ...receipt,
           userId: ctx.user.id,
-          actualQuantity: receipt.actualQuantity.toString(),
+          materialCode: receipt.materialCode,
+          businessDate: receipt.businessDate,
+          actualQuantity: receipt.actualQuantity.toString(), // decimal类型需要字符串
+          supplierName: receipt.supplierName || null,
         }));
         
         // 保存到数据库
