@@ -41,10 +41,16 @@ export async function parseActualReceiptExcel(fileContent: string): Promise<Actu
     
     for (let i = 1; i <= Math.min(20, worksheet.rowCount); i++) {
       const row = worksheet.getRow(i);
-      const firstCellValue = row.getCell(1).value?.toString() || "";
+      // 检查整行是否包含关键列名
+      let foundKeyColumn = false;
+      row.eachCell((cell) => {
+        const cellValue = cell.value?.toString() || "";
+        if (cellValue.includes("业务日期") || cellValue.includes("料号") || cellValue.includes("实收数量")) {
+          foundKeyColumn = true;
+        }
+      });
       
-      // 查找包含"业务日期"或"料号"的行作为表头
-      if (firstCellValue.includes("业务日期") || firstCellValue.includes("料号")) {
+      if (foundKeyColumn) {
         headerRow = row;
         headerRowIndex = i;
         break;
@@ -137,7 +143,9 @@ export async function parseActualReceiptExcel(fileContent: string): Promise<Actu
         
         // 提取供应商名称（可选）
         let supplierName: string | undefined;
-        if (headerMap["供应商名称"]) {
+        if (headerMap["名称"]) {
+          supplierName = row.getCell(headerMap["名称"]).value?.toString().trim();
+        } else if (headerMap["供应商名称"]) {
           supplierName = row.getCell(headerMap["供应商名称"]).value?.toString().trim();
         }
         

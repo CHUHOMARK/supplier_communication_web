@@ -162,12 +162,15 @@ export default function ERPImport() {
               )}
 
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <h4 className="font-semibold text-blue-900 mb-2">Excel格式要求：</h4>
-                <ul className="text-sm text-blue-800 space-y-1">
-                  <li>• 必须包含列：<strong>业务日期</strong>、<strong>料号</strong>、<strong>实收数量(计价单位)</strong></li>
-                  <li>• 业务日期格式：YYYY-MM-DD（如：2025-02-12）</li>
-                  <li>• 料号需与物料计划中的料号一致</li>
-                  <li>• 可选列：供应商名称</li>
+                <h4 className="font-semibold text-blue-900 mb-2 flex items-center gap-2">
+                  <AlertCircle className="h-5 w-5" />
+                  Excel格式要求：
+                </h4>
+                <ul className="text-sm text-blue-800 space-y-1 ml-7">
+                  <li>• <strong>必须包含列</strong>：业务日期、料号、实收数量(计价单位)</li>
+                  <li>• <strong>业务日期格式</strong>：YYYY-MM-DD（如：2025-02-12）</li>
+                  <li>• <strong>料号</strong>需与物料计划中的料号一致</li>
+                  <li>• <strong>可选列</strong>：供应商名称</li>
                 </ul>
               </div>
             </div>
