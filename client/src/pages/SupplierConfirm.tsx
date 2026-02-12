@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Loader2, CheckCircle, XCircle, AlertCircle } from "lucide-react";
+import { ProductionStepper } from "@/components/ProductionStepper";
 
 /**
  * 供应商交期确认页面
@@ -49,6 +50,15 @@ export default function SupplierConfirm() {
     onError: (error) => {
       toast.error(`提交失败: ${error.message}`);
       setIsSubmitting(false);
+    },
+  });
+
+  const updateProductionStatusMutation = trpc.confirmation.updateProductionStatus.useMutation({
+    onSuccess: () => {
+      toast.success("生产状态更新成功");
+    },
+    onError: (error) => {
+      toast.error(`更新失败: ${error.message}`);
     },
   });
 
@@ -153,7 +163,19 @@ export default function SupplierConfirm() {
           </CardHeader>
         </Card>
 
-        <Card className="mb-6">
+        {/* 生产进度步进器 */}
+        <ProductionStepper
+          currentStatus={confirmation.productionStatus || "not_started"}
+          onStatusChange={async (status) => {
+            await updateProductionStatusMutation.mutateAsync({
+              token,
+              productionStatus: status,
+            });
+          }}
+          disabled={isSubmitting}
+        />
+
+        <Card className="mb-6 mt-6">
           <CardHeader>
             <CardTitle>物料清单</CardTitle>
           </CardHeader>

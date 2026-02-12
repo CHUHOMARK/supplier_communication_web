@@ -1233,6 +1233,59 @@ export const appRouter = router({
         };
       }),
 
+    // 更新生产状态（公开接口，供应商可更新）
+    updateProductionStatus: publicProcedure
+      .input(z.object({
+        token: z.string(),
+        productionStatus: z.enum(['not_started', 'material_prep', 'in_production', 'in_qc', 'ready_to_ship', 'shipped']),
+      }))
+      .mutation(async ({ input }) => {
+        const confirmation = await db.getConfirmationByToken(input.token);
+        
+        if (!confirmation) {
+          throw new TRPCError({
+            code: 'NOT_FOUND',
+            message: '确认记录不存在',
+          });
+        }
+
+        // 检查是否过期
+        const { isTokenExpired } = await import('./confirmationService');
+        if (isTokenExpired(confirmation.expiresAt)) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: '确认链接已过期',
+          });
+        }
+
+        // 更新生产状态
+        await db.updateConfirmationProductionStatus(confirmation.id, input.productionStatus);
+
+        // 创建通知
+        const supplier = await db.getSupplierById(confirmation.supplierId);
+        const statusMap: Record<string, string> = {
+          'not_started': '未开始',
+          'material_prep': '原料准备中',
+          'in_production': '生产中',
+          'in_qc': '质检中',
+          'ready_to_ship': '待发货',
+          'shipped': '已发货',
+        };
+        await db.createNotification({
+          userId: confirmation.userId,
+          type: 'status_change',
+          title: `供应商${supplier?.supplierName || ''}更新了生产状态`,
+          content: `供应商${supplier?.supplierName || ''}将生产状态更新为：${statusMap[input.productionStatus]}`,
+          relatedId: confirmation.id,
+          relatedType: 'confirmation',
+        });
+
+        return {
+          success: true,
+          message: '生产状态更新成功',
+        };
+      }),
+
     // 供应商提交确认响应（公开接口）
     submit: publicProcedure
       .input(z.object({

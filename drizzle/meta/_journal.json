@@ -148,6 +148,13 @@
       "when": 1770886827272,
       "tag": "0020_dizzy_xorn",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "5",
+      "when": 1770888801632,
+      "tag": "0021_medical_post",
+      "breakpoints": true
     }
   ]
 }

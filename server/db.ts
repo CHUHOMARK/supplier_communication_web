@@ -681,6 +681,24 @@ export async function updateConfirmationStatus(
 }
 
 /**
+ * 更新确认记录的生产状态
+ */
+export async function updateConfirmationProductionStatus(
+  id: number,
+  productionStatus: "not_started" | "material_prep" | "in_production" | "in_qc" | "ready_to_ship" | "shipped"
+) {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  await db
+    .update(supplierConfirmations)
+    .set({ productionStatus })
+    .where(eq(supplierConfirmations.id, id));
+}
+
+/**
  * 获取物料计划的所有确认记录
  */
 export async function getConfirmationsByPlanId(planId: number) {

@@ -155,6 +155,7 @@ export const supplierConfirmations = mysqlTable("supplier_confirmations", {
   emailLogId: int("emailLogId"), // 关联的邮件发送记录ID
   confirmToken: varchar("confirmToken", { length: 64 }).notNull().unique(), // 确认token
   status: mysqlEnum("status", ["pending", "confirmed", "partial", "rejected", "modified"]).default("pending").notNull(),
+  productionStatus: mysqlEnum("productionStatus", ["not_started", "material_prep", "in_production", "in_qc", "ready_to_ship", "shipped"]).default("not_started"),
   supplierResponse: text("supplierResponse"), // 供应商的响应内容（JSON）
   supplierNotes: text("supplierNotes"), // 供应商备注
   dailySchedule: json("dailySchedule").$type<Record<string, number>>(), // 供应商的日期维度来货数量
@@ -303,3 +304,30 @@ export const actualReceipts = mysqlTable("actual_receipts", {
 
 export type ActualReceipt = typeof actualReceipts.$inferSelect;
 export type InsertActualReceipt = typeof actualReceipts.$inferInsert;
+
+
+/**
+ * 邮件跟催记录表
+ */
+export const followUpEmails = mysqlTable("follow_up_emails", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(), // 用户ID
+  confirmationId: int("confirmationId").notNull(), // 关联的确认记录ID
+  followUpType: mysqlEnum("followUpType", ["t_minus_3", "t_minus_1", "manual"]).notNull(), // 跟催类型
+  emailSubject: varchar("emailSubject", { length: 500 }).notNull(), // 邮件主题
+  emailBody: text("emailBody").notNull(), // 邮件正文
+  sentAt: timestamp("sentAt"), // 发送时间
+  status: mysqlEnum("status", ["pending", "sent", "failed"]).default("pending").notNull(), // 发送状态
+  errorMessage: text("errorMessage"), // 错误信息
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (table) => ({
+  userIdIdx: index("idx_follow_up_user_id").on(table.userId),
+  confirmationIdIdx: index("idx_follow_up_confirmation_id").on(table.confirmationId),
+  followUpTypeIdx: index("idx_follow_up_type").on(table.followUpType),
+  statusIdx: index("idx_follow_up_status").on(table.status),
+  // 防止重复跟催：同一确认记录的同一类型跟催只能有一条
+  uniqueFollowUp: unique("unique_follow_up").on(table.confirmationId, table.followUpType),
+}));
+
+export type FollowUpEmail = typeof followUpEmails.$inferSelect;
+export type InsertFollowUpEmail = typeof followUpEmails.$inferInsert;
