@@ -14,6 +14,25 @@ import { generateModificationExcel } from "./modificationExporter";
 
 export const appRouter = router({
   system: systemRouter,
+  
+  // 仪表盘统计
+  dashboard: router({
+    getStats: protectedProcedure
+      .query(async ({ ctx }) => {
+        const [dataStats, confirmStats] = await Promise.all([
+          db.getUserDataStats(ctx.user.id),
+          db.getConfirmationStatsByUserId(ctx.user.id),
+        ]);
+        
+        return {
+          materialPlans: dataStats.materialPlans,
+          suppliers: dataStats.suppliers,
+          emailsSent: dataStats.emailLogs,
+          pendingConfirmations: confirmStats.pending,
+        };
+      }),
+  }),
+  
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
     
