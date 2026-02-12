@@ -702,6 +702,10 @@ export async function getConfirmationsByPlanId(planId: number) {
 
 /**
  * 获取供应商确认状态统计（已确认/未确认供应商数量）
+ * 逻辑：
+ * - 总供应商数 = 用户所有物料计划对应的供应商确认记录中的供应商数（去重）
+ * - 已确认供应商数 = 状态为confirmed/partial/modified的供应商数
+ * - 未确认供应商数 = 总供应商数 - 已确认供应商数
  */
 export async function getSupplierConfirmationStats(userId: number) {
   const db = await getDb();
@@ -713,36 +717,35 @@ export async function getSupplierConfirmationStats(userId: number) {
     };
   }
 
-  // 获取所有确认记录
+  // 获取用户所有物料计划对应的供应商确认记录
   const confirmations = await db
     .select()
     .from(supplierConfirmations)
     .where(eq(supplierConfirmations.userId, userId));
 
-  // 统计已确认和未确认的供应商数量
+  // 统计所有供应商（去重）
+  const allSuppliers = new Set<number>();
   const confirmedSuppliers = new Set<number>();
-  const unconfirmedSuppliers = new Set<number>();
 
   confirmations.forEach((record) => {
+    // 添加到总供应商集合
+    allSuppliers.add(record.supplierId);
+    
+    // 如果是已确认状态，添加到已确认集合
     const status = record.status || "pending";
     if (status === "confirmed" || status === "partial" || status === "modified") {
       confirmedSuppliers.add(record.supplierId);
-    } else if (status === "pending" || status === "rejected") {
-      unconfirmedSuppliers.add(record.supplierId);
     }
   });
 
-  // 移除重复（如果一个供应商既有确认又有未确认，优先计为已确认）
-  unconfirmedSuppliers.forEach((supplierId) => {
-    if (confirmedSuppliers.has(supplierId)) {
-      unconfirmedSuppliers.delete(supplierId);
-    }
-  });
+  const total = allSuppliers.size;
+  const confirmed = confirmedSuppliers.size;
+  const unconfirmed = total - confirmed;
 
   return {
-    confirmed: confirmedSuppliers.size,
-    unconfirmed: unconfirmedSuppliers.size,
-    total: confirmedSuppliers.size + unconfirmedSuppliers.size,
+    confirmed,
+    unconfirmed,
+    total,
   };
 }
 
