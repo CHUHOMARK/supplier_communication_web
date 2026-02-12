@@ -54,9 +54,9 @@ export default function Home() {
                 <span>批量导出</span>
               </div>
             </div>
-            <Button className="w-full" size="lg" asChild>
-              <a href={getLoginUrl()}>登录开始使用</a>
-            </Button>
+            <Link href="/login">
+              <Button className="w-full" size="lg">登录开始使用</Button>
+            </Link>
           </CardContent>
         </Card>
       </div>

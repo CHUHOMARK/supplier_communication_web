@@ -1314,3 +1314,81 @@ export async function setDefaultSmtpAccount(id: number, userId: number) {
 
   return true;
 }
+
+/**
+ * 通过用户名查找用户
+ */
+export async function getUserByUsername(username: string) {
+  const db = await getDb();
+  if (!db) return null;
+  
+  try {
+    const result = await db.select().from(users).where(eq(users.username, username)).limit(1);
+    return result[0] || null;
+  } catch (error) {
+    console.error("[Database] Failed to get user by username:", error);
+    return null;
+  }
+}
+
+/**
+ * 通过ID查找用户
+ */
+export async function getUserById(id: number) {
+  const db = await getDb();
+  if (!db) return null;
+  
+  try {
+    const result = await db.select().from(users).where(eq(users.id, id)).limit(1);
+    return result[0] || null;
+  } catch (error) {
+    console.error("[Database] Failed to get user by id:", error);
+    return null;
+  }
+}
+
+/**
+ * 创建新用户（用于注册）
+ */
+export async function createUser(data: {
+  username: string;
+  password: string;
+  name?: string;
+  email?: string;
+}) {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+  
+  try {
+    const result = await db.insert(users).values({
+      username: data.username,
+      password: data.password,
+      name: data.name || data.username,
+      email: data.email,
+      loginMethod: 'local',
+      role: 'user',
+      lastSignedIn: new Date(),
+    });
+    
+    return result;
+  } catch (error) {
+    console.error("[Database] Failed to create user:", error);
+    throw error;
+  }
+}
+
+/**
+ * 更新用户最后登录时间
+ */
+export async function updateUserLastSignedIn(userId: number) {
+  const db = await getDb();
+  if (!db) return;
+  
+  try {
+    await db.update(users).set({ lastSignedIn: new Date() }).where(eq(users.id, userId));
+  } catch (error) {
+    console.error("[Database] Failed to update last signed in:", error);
+  }
+}

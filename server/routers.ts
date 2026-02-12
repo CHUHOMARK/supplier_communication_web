@@ -7,12 +7,107 @@ import * as db from "./db";
 import { parseMaterialPlanExcel, parseSupplierMappingExcel } from "./excelParser";
 import { generateSupplierEmail, generateEmailCSV } from "./emailGenerator";
 import { TRPCError } from "@trpc/server";
+import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
+import { ENV } from "./_core/env";
 import { generateModificationExcel } from "./modificationExporter";
 
 export const appRouter = router({
   system: systemRouter,
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
+    
+    // 用户注册
+    register: publicProcedure
+      .input(z.object({
+        username: z.string().min(3).max(50),
+        password: z.string().min(6),
+        name: z.string().optional(),
+        email: z.string().email().optional(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        // 检查用户名是否已存在
+        const existingUser = await db.getUserByUsername(input.username);
+        if (existingUser) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: '用户名已存在',
+          });
+        }
+        
+        // 加密密码
+        const hashedPassword = await bcrypt.hash(input.password, 10);
+        
+        // 创建用户
+        await db.createUser({
+          username: input.username,
+          password: hashedPassword,
+          name: input.name,
+          email: input.email,
+        });
+        
+        return {
+          success: true,
+          message: '注册成功',
+        };
+      }),
+    
+    // 用户登录
+    login: publicProcedure
+      .input(z.object({
+        username: z.string(),
+        password: z.string(),
+        rememberMe: z.boolean().optional(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        // 查找用户
+        const user = await db.getUserByUsername(input.username);
+        if (!user || !user.password) {
+          throw new TRPCError({
+            code: 'UNAUTHORIZED',
+            message: '用户名或密码错误',
+          });
+        }
+        
+        // 验证密码
+        const isValid = await bcrypt.compare(input.password, user.password);
+        if (!isValid) {
+          throw new TRPCError({
+            code: 'UNAUTHORIZED',
+            message: '用户名或密码错误',
+          });
+        }
+        
+        // 更新最后登录时间
+        await db.updateUserLastSignedIn(user.id);
+        
+        // 生成JWT token
+        const maxAge = input.rememberMe ? 30 * 24 * 60 * 60 * 1000 : 7 * 24 * 60 * 60 * 1000; // 30天或7天
+        const token = jwt.sign(
+          { userId: user.id, username: user.username },
+          ENV.jwtSecret,
+          { expiresIn: maxAge / 1000 }
+        );
+        
+        // 设置cookie
+        const cookieOptions = getSessionCookieOptions(ctx.req);
+        ctx.res.cookie(COOKIE_NAME, token, {
+          ...cookieOptions,
+          maxAge,
+        });
+        
+        return {
+          success: true,
+          user: {
+            id: user.id,
+            username: user.username,
+            name: user.name,
+            email: user.email,
+            role: user.role,
+          },
+        };
+      }),
+    
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });

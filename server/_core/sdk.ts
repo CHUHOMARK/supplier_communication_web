@@ -4,6 +4,7 @@ import axios, { type AxiosInstance } from "axios";
 import { parse as parseCookieHeader } from "cookie";
 import type { Request } from "express";
 import { SignJWT, jwtVerify } from "jose";
+import jwt from "jsonwebtoken";
 import type { User } from "../../drizzle/schema";
 import * as db from "../db";
 import { ENV } from "./env";
@@ -257,9 +258,27 @@ class SDKServer {
   }
 
   async authenticateRequest(req: Request): Promise<User> {
-    // Regular authentication flow
     const cookies = this.parseCookies(req.headers.cookie);
     const sessionCookie = cookies.get(COOKIE_NAME);
+    
+    if (!sessionCookie) {
+      throw ForbiddenError("No session cookie");
+    }
+
+    // 尝试本地JWT认证
+    try {
+      const decoded = jwt.verify(sessionCookie, ENV.jwtSecret) as { userId: number; username: string };
+      if (decoded.userId) {
+        const user = await db.getUserById(decoded.userId);
+        if (user) {
+          return user;
+        }
+      }
+    } catch (error) {
+      // JWT验证失败，尝试Manus OAuth
+    }
+
+    // 尝试Manus OAuth认证
     const session = await this.verifySession(sessionCookie);
 
     if (!session) {
