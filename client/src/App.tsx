@@ -12,6 +12,9 @@ import ConfirmationMonitor from "./pages/ConfirmationMonitor";
 import Settings from "./pages/Settings";
 import { Login } from "./pages/Login";
 import { Register } from "./pages/Register";
+import UploadPlan from "./pages/UploadPlan";
+import Suppliers from "./pages/Suppliers";
+import Emails from "./pages/Emails";
 import { useAuth } from "./_core/hooks/useAuth";
 import { useEffect } from "react";
 import { useLocation } from "wouter";
@@ -55,16 +58,16 @@ function Router() {
         <ProtectedRoute component={Dashboard} />
       </Route>
       <Route path={"/upload"}>
-        <ProtectedRoute component={Home} />
+        <ProtectedRoute component={UploadPlan} />
       </Route>
       <Route path={"/suppliers"}>
-        <ProtectedRoute component={Home} />
+        <ProtectedRoute component={Suppliers} />
       </Route>
       <Route path={"/share-allocation"}>
         <ProtectedRoute component={ShareAllocation} />
       </Route>
       <Route path={"/emails"}>
-        <ProtectedRoute component={Home} />
+        <ProtectedRoute component={Emails} />
       </Route>
       <Route path={"/settings"}>
         <ProtectedRoute component={Settings} />
