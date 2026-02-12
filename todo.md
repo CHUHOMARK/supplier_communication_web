@@ -1272,3 +1272,48 @@
 - [ ] 实现自动发送跟催邮件
 - [ ] 在邮件发送日志中添加"系统自动触发"标记
 - [ ] 添加自动跟催开关配置
+
+
+## 新需求 - ERP实际到货导入功能 ✅第一阶段完成
+
+### 数据库设计
+- [x] 在drizzle/schema.ts中创建actual_receipts表
+  - [x] 字段：id, userId, materialCode, businessDate, actualQuantity, createdAt, updatedAt
+  - [x] 添加唯一性约束（userId + materialCode + businessDate）
+  - [x] 添加索引优化查询性能
+
+### 后端开发
+- [x] 创建ERP Excel解析函数
+  - [x] 解析'业务日期'、'料号'、'实收数量(计价单位)'三列
+  - [x] 参考material_plans的解析逻辑
+  - [x] 数据验证和错误处理
+- [x] 在routers.ts中添加erp router
+  - [x] erp.importData mutation - 上传并解析Excel
+  - [x] erp.getReceipts query - 获取实际到货记录
+  - [x] erp.deleteReceipt mutation - 删除到货记录
+  - [x] erp.getReceiptsForConfirmations query - 获取确认记录的实际到货信息
+- [x] 在db.ts中添加数据库操作函数
+  - [x] createActualReceipts - 批量创建到货记录
+  - [x] getActualReceiptsByUserId - 获取用户的到货记录
+  - [x] deleteActualReceipt - 删除到货记录
+  - [x] getOverdueAnalysis - 计算供应商逾期统计
+  - [x] getActualReceiptsForConfirmations - 获取确认记录的实际到货信息
+
+### ERP导入页面
+- [x] 创建ERPImport.tsx页面
+- [x] 实现文件上传组件
+- [x] 显示上传进度条
+- [x] 解析完成后弹窗提示匹配成功的物料行数
+- [x] 显示导入历史记录
+- [x] 添加到仪表盘导航
+
+### 监控页面对比
+- [x] 在ConfirmationMonitor页面添加表格视图
+- [x] 添加"ERP实际到货"列
+- [x] 添加"到货偏差（天）"列
+- [x] 实际日期晚于承诺日期时，红色高亮显示偏差天数
+- [x] 支持卡片视图和表格视图切换
+
+### 测试
+- [ ] 编写单元测试
+- [ ] 功能测试
