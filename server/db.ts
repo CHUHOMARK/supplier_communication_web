@@ -14,6 +14,7 @@ import {
   confirmationModifications,
   purchaseOrders,
   smtpAccounts,
+  notifications,
   InsertMaterialPlan,
   InsertMaterialItem,
   InsertSupplier,
@@ -22,6 +23,7 @@ import {
   InsertEmailSendLog,
   InsertConfirmationModification,
   InsertSmtpAccount,
+  InsertNotification,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -1391,4 +1393,269 @@ export async function updateUserLastSignedIn(userId: number) {
   } catch (error) {
     console.error("[Database] Failed to update last signed in:", error);
   }
+}
+
+
+// ==================== 图表数据统计函数 ====================
+
+/**
+ * 获取邮件发送量趋势数据（最近30天）
+ */
+export async function getEmailSendTrend(userId: number, days: number = 30) {
+  const db = await getDb();
+  if (!db) {
+    return [];
+  }
+
+  const startDate = new Date();
+  startDate.setDate(startDate.getDate() - days);
+
+  const logs = await db
+    .select()
+    .from(emailSendLogs)
+    .where(eq(emailSendLogs.userId, userId));
+
+  // 按日期聚合
+  const trendMap = new Map<string, number>();
+  logs.forEach((log) => {
+    if (log.sentAt && log.sentAt >= startDate) {
+      const dateKey = log.sentAt.toISOString().split('T')[0];
+      trendMap.set(dateKey, (trendMap.get(dateKey) || 0) + 1);
+    }
+  });
+
+  // 填充缺失的日期
+  const result = [];
+  for (let i = days - 1; i >= 0; i--) {
+    const date = new Date();
+    date.setDate(date.getDate() - i);
+    const dateKey = date.toISOString().split('T')[0];
+    result.push({
+      date: dateKey,
+      count: trendMap.get(dateKey) || 0,
+    });
+  }
+
+  return result;
+}
+
+/**
+ * 获取确认率趋势数据（最近30天）
+ */
+export async function getConfirmationRateTrend(userId: number, days: number = 30) {
+  const db = await getDb();
+  if (!db) {
+    return [];
+  }
+
+  const startDate = new Date();
+  startDate.setDate(startDate.getDate() - days);
+
+  const confirmations = await db
+    .select()
+    .from(supplierConfirmations)
+    .where(eq(supplierConfirmations.userId, userId));
+
+  // 按日期聚合
+  const trendMap = new Map<string, { total: number; confirmed: number }>();
+  confirmations.forEach((conf) => {
+    if (conf.createdAt && conf.createdAt >= startDate) {
+      const dateKey = conf.createdAt.toISOString().split('T')[0];
+      const current = trendMap.get(dateKey) || { total: 0, confirmed: 0 };
+      current.total++;
+      if (conf.status === 'confirmed' || conf.status === 'modified') {
+        current.confirmed++;
+      }
+      trendMap.set(dateKey, current);
+    }
+  });
+
+  // 填充缺失的日期并计算确认率
+  const result = [];
+  for (let i = days - 1; i >= 0; i--) {
+    const date = new Date();
+    date.setDate(date.getDate() - i);
+    const dateKey = date.toISOString().split('T')[0];
+    const data = trendMap.get(dateKey) || { total: 0, confirmed: 0 };
+    result.push({
+      date: dateKey,
+      total: data.total,
+      confirmed: data.confirmed,
+      rate: data.total > 0 ? Math.round((data.confirmed / data.total) * 100) : 0,
+    });
+  }
+
+  return result;
+}
+
+/**
+ * 获取供应商响应时间统计（平均响应时间，单位：小时）
+ */
+export async function getSupplierResponseTimeStats(userId: number) {
+  const db = await getDb();
+  if (!db) {
+    return [];
+  }
+
+  const confirmations = await db
+    .select()
+    .from(supplierConfirmations)
+    .where(eq(supplierConfirmations.userId, userId));
+
+  const responseTimeMap = new Map<number, { totalTime: number; count: number; name: string }>();
+
+  for (const conf of confirmations) {
+    if (conf.confirmedAt && conf.createdAt) {
+      const responseTime = (conf.confirmedAt.getTime() - conf.createdAt.getTime()) / (1000 * 60 * 60); // 转换为小时
+      
+      // 获取供应商名称
+      const supplier = await db
+        .select()
+        .from(suppliers)
+        .where(eq(suppliers.id, conf.supplierId))
+        .limit(1);
+
+      if (supplier.length > 0) {
+        const current = responseTimeMap.get(conf.supplierId) || {
+          totalTime: 0,
+          count: 0,
+          name: supplier[0].supplierName,
+        };
+        current.totalTime += responseTime;
+        current.count++;
+        responseTimeMap.set(conf.supplierId, current);
+      }
+    }
+  }
+
+  // 计算平均响应时间
+  const result = Array.from(responseTimeMap.entries())
+    .map(([supplierId, data]) => ({
+      supplierId,
+      supplierName: data.name,
+      avgResponseTime: Math.round(data.totalTime / data.count * 10) / 10, // 保留1位小数
+      count: data.count,
+    }))
+    .sort((a, b) => b.count - a.count) // 按响应次数排序
+    .slice(0, 10); // 只取前10个
+
+  return result;
+}
+
+
+// ==================== 通知相关函数 ====================
+
+/**
+ * 创建通知
+ */
+export async function createNotification(data: InsertNotification) {
+  const db = await getDb();
+  if (!db) {
+    return null;
+  }
+
+  const result = await db.insert(notifications).values(data);
+  return result;
+}
+
+/**
+ * 获取用户的通知列表
+ */
+export async function getNotificationsByUserId(userId: number, limit: number = 50) {
+  const db = await getDb();
+  if (!db) {
+    return [];
+  }
+
+  return await db
+    .select()
+    .from(notifications)
+    .where(eq(notifications.userId, userId))
+    .orderBy(desc(notifications.createdAt))
+    .limit(limit);
+}
+
+/**
+ * 获取用户的未读通知数量
+ */
+export async function getUnreadNotificationCount(userId: number) {
+  const db = await getDb();
+  if (!db) {
+    return 0;
+  }
+
+  const result = await db
+    .select()
+    .from(notifications)
+    .where(and(
+      eq(notifications.userId, userId),
+      eq(notifications.isRead, false)
+    ));
+
+  return result.length;
+}
+
+/**
+ * 标记通知为已读
+ */
+export async function markNotificationAsRead(notificationId: number, userId: number) {
+  const db = await getDb();
+  if (!db) {
+    return false;
+  }
+
+  await db
+    .update(notifications)
+    .set({
+      isRead: true,
+      readAt: new Date(),
+    })
+    .where(and(
+      eq(notifications.id, notificationId),
+      eq(notifications.userId, userId)
+    ));
+
+  return true;
+}
+
+/**
+ * 标记所有通知为已读
+ */
+export async function markAllNotificationsAsRead(userId: number) {
+  const db = await getDb();
+  if (!db) {
+    return false;
+  }
+
+  await db
+    .update(notifications)
+    .set({
+      isRead: true,
+      readAt: new Date(),
+    })
+    .where(and(
+      eq(notifications.userId, userId),
+      eq(notifications.isRead, false)
+    ));
+
+  return true;
+}
+
+/**
+ * 删除通知
+ */
+export async function deleteNotification(notificationId: number, userId: number) {
+  const db = await getDb();
+  if (!db) {
+    return false;
+  }
+
+  await db
+    .delete(notifications)
+    .where(and(
+      eq(notifications.id, notificationId),
+      eq(notifications.userId, userId)
+    ));
+
+  return true;
 }

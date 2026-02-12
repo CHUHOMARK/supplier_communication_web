@@ -15,6 +15,49 @@ import { generateModificationExcel } from "./modificationExporter";
 export const appRouter = router({
   system: systemRouter,
   
+  // 通知中心
+  notifications: router({
+    // 获取通知列表
+    getList: protectedProcedure
+      .input(z.object({
+        limit: z.number().min(1).max(100).default(50),
+      }).optional())
+      .query(async ({ ctx, input }) => {
+        const limit = input?.limit || 50;
+        return await db.getNotificationsByUserId(ctx.user.id, limit);
+      }),
+    
+    // 获取未读数量
+    getUnreadCount: protectedProcedure
+      .query(async ({ ctx }) => {
+        return await db.getUnreadNotificationCount(ctx.user.id);
+      }),
+    
+    // 标记为已读
+    markAsRead: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        return await db.markNotificationAsRead(input.id, ctx.user.id);
+      }),
+    
+    // 标记全部为已读
+    markAllAsRead: protectedProcedure
+      .mutation(async ({ ctx }) => {
+        return await db.markAllNotificationsAsRead(ctx.user.id);
+      }),
+    
+    // 删除通知
+    delete: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        return await db.deleteNotification(input.id, ctx.user.id);
+      }),
+  }),
+  
   // 仪表盘统计
   dashboard: router({
     getStats: protectedProcedure
@@ -30,6 +73,32 @@ export const appRouter = router({
           emailsSent: dataStats.emailLogs,
           pendingConfirmations: confirmStats.pending,
         };
+      }),
+    
+    // 获取邮件发送量趋势数据
+    getEmailSendTrend: protectedProcedure
+      .input(z.object({
+        days: z.number().min(7).max(90).default(30),
+      }).optional())
+      .query(async ({ ctx, input }) => {
+        const days = input?.days || 30;
+        return await db.getEmailSendTrend(ctx.user.id, days);
+      }),
+    
+    // 获取确认率趋势数据
+    getConfirmationRateTrend: protectedProcedure
+      .input(z.object({
+        days: z.number().min(7).max(90).default(30),
+      }).optional())
+      .query(async ({ ctx, input }) => {
+        const days = input?.days || 30;
+        return await db.getConfirmationRateTrend(ctx.user.id, days);
+      }),
+    
+    // 获取供应商响应时间统计
+    getSupplierResponseTimeStats: protectedProcedure
+      .query(async ({ ctx }) => {
+        return await db.getSupplierResponseTimeStats(ctx.user.id);
       }),
   }),
   
@@ -1219,6 +1288,18 @@ export const appRouter = router({
           confirmedAt: new Date(),
         });
 
+        // 创建通知
+        const supplier = await db.getSupplierById(confirmation.supplierId);
+        const statusText = input.status === 'confirmed' ? '已确认' : input.status === 'rejected' ? '已拒绝' : '部分确认';
+        await db.createNotification({
+          userId: confirmation.userId,
+          type: 'supplier_reply',
+          title: `供应商${supplier?.supplierName || ''}回复了计划`,
+          content: `供应商${supplier?.supplierName || ''}已${statusText}物料计划${input.supplierNotes ? `，备注：${input.supplierNotes}` : ''}`,
+          relatedId: confirmation.id,
+          relatedType: 'confirmation',
+        });
+
         return {
           success: true,
           message: '确认提交成功',
@@ -1270,6 +1351,17 @@ export const appRouter = router({
         await db.updateConfirmationStatus(confirmation.id, {
           status: 'modified',
           confirmedAt: new Date(),
+        });
+
+        // 创建通知
+        const supplier = await db.getSupplierById(confirmation.supplierId);
+        await db.createNotification({
+          userId: confirmation.userId,
+          type: 'status_change',
+          title: `供应商${supplier?.supplierName || ''}修改了计划`,
+          content: `供应商${supplier?.supplierName || ''}对${input.modifications.length}个物料的交期数量进行了修改，请及时查看`,
+          relatedId: confirmation.id,
+          relatedType: 'confirmation',
         });
 
         return {

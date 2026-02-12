@@ -256,3 +256,26 @@ export const smtpAccounts = mysqlTable("smtp_accounts", {
 
 export type SmtpAccount = typeof smtpAccounts.$inferSelect;
 export type InsertSmtpAccount = typeof smtpAccounts.$inferInsert;
+
+/**
+ * 通知表
+ */
+export const notifications = mysqlTable("notifications", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(), // 接收通知的用户ID
+  type: mysqlEnum("type", ["supplier_reply", "status_change", "system"]).notNull(), // 通知类型
+  title: varchar("title", { length: 255 }).notNull(), // 通知标题
+  content: text("content").notNull(), // 通知内容
+  relatedId: int("relatedId"), // 关联的记录ID（如confirmationId）
+  relatedType: varchar("relatedType", { length: 50 }), // 关联的记录类型（如"confirmation"）
+  isRead: boolean("isRead").notNull().default(false), // 是否已读
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  readAt: timestamp("readAt"), // 已读时间
+}, (table) => ({
+  userIdIdx: index("idx_notification_user_id").on(table.userId),
+  isReadIdx: index("idx_notification_is_read").on(table.isRead),
+  createdAtIdx: index("idx_notification_created_at").on(table.createdAt),
+}));
+
+export type Notification = typeof notifications.$inferSelect;
+export type InsertNotification = typeof notifications.$inferInsert;

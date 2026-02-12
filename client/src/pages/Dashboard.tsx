@@ -3,6 +3,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { trpc } from "@/lib/trpc";
+import { DashboardCharts } from "@/components/DashboardCharts";
+import { NotificationCenter } from "@/components/NotificationCenter";
 import { 
   Upload, 
   Users, 
@@ -89,9 +91,10 @@ export default function Dashboard() {
             </div>
           </div>
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-50">
-              <User className="h-4 w-4 text-gray-600" />
-              <span className="text-sm font-medium text-gray-700">{user?.name || user?.username}</span>
+            <NotificationCenter />
+            <div className="flex items-center gap-2 text-sm">
+              <User className="h-4 w-4" />
+              <span>{user?.name || user?.username}</span>
             </div>
             <Button variant="outline" size="sm" onClick={handleLogout}>
               <LogOut className="h-4 w-4 mr-2" />
@@ -184,6 +187,9 @@ export default function Dashboard() {
             </CardHeader>
           </Card>
         </div>
+
+        {/* 数据可视化图表 */}
+        <DashboardCharts />
       </main>
     </div>
   );
