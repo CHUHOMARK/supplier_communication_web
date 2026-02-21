@@ -2444,3 +2444,150 @@ export async function getSupplierDeliveryComparison(
     comparisonData,
   };
 }
+
+
+/**
+ * 获取供应商的详细交付记录（用于详情对话框）
+ * @param userId 用户ID
+ * @param planId 物料计划ID
+ * @param supplierName 供应商名称
+ * @returns 该供应商的所有物料交付详情
+ */
+export async function getSupplierDeliveryDetails(
+  userId: number,
+  planId: number,
+  supplierName: string
+): Promise<Array<{
+  materialCode: string;
+  materialName: string;
+  promisedDate: string;
+  promisedQuantity: number;
+  actualDate: string | null;
+  actualQuantity: number | null;
+  delayDays: number | null;
+  status: 'on_time' | 'late' | 'early' | 'no_delivery';
+}>> {
+  // 1. 验证计划属于该用户
+  const db = await getDb();
+  if (!db) throw new Error('Database connection failed');
+  
+  const plan = await db
+    .select()
+    .from(materialPlans)
+    .where(
+      and(
+        eq(materialPlans.id, planId),
+        eq(materialPlans.userId, userId)
+      )
+    )
+    .limit(1);
+  
+  if (plan.length === 0) {
+    throw new Error('Material plan not found or access denied');
+  }
+  
+  // 2. 获取该计划中的所有物料明细
+  const materialItemsData = await db
+    .select()
+    .from(materialItems)
+    .where(eq(materialItems.planId, planId));
+
+  // 3. 获取该供应商的所有实际到货记录
+  const actualReceiptsList = await db
+    .select()
+    .from(actualReceipts)
+    .where(
+      and(
+        eq(actualReceipts.userId, userId),
+        eq(actualReceipts.supplierName, supplierName)
+      )
+    );
+
+  // 4. 按物料代码分组实际到货记录
+  const receiptsByMaterial = new Map<string, ActualReceipt[]>();
+  for (const receipt of actualReceiptsList) {
+    if (!receiptsByMaterial.has(receipt.materialCode)) {
+      receiptsByMaterial.set(receipt.materialCode, []);
+    }
+    receiptsByMaterial.get(receipt.materialCode)!.push(receipt);
+  }
+
+  // 5. 对比每个物料的计划和实际
+  const details: Array<{
+    materialCode: string;
+    materialName: string;
+    promisedDate: string;
+    promisedQuantity: number;
+    actualDate: string | null;
+    actualQuantity: number | null;
+    delayDays: number | null;
+    status: 'on_time' | 'late' | 'early' | 'no_delivery';
+  }> = [];
+
+  for (const materialItem of materialItemsData) {
+    const dailySchedule = typeof materialItem.dailySchedule === 'string'
+      ? JSON.parse(materialItem.dailySchedule)
+      : materialItem.dailySchedule || {};
+
+    const promisedDates = Object.keys(dailySchedule).sort();
+    const itemReceipts = receiptsByMaterial.get(materialItem.materialCode) || [];
+
+    // 按日期对比
+    for (const promisedDate of promisedDates) {
+      const promisedQuantity = dailySchedule[promisedDate];
+
+      // 查找该日期或之前的实际到货记录
+        const matchingReceipts = itemReceipts.filter((r: ActualReceipt) => r.businessDate <= promisedDate);
+
+      if (matchingReceipts.length === 0) {
+        // 没有实际到货
+        details.push({
+          materialCode: materialItem.materialCode,
+          materialName: materialItem.materialName,
+          promisedDate,
+          promisedQuantity,
+          actualDate: null,
+          actualQuantity: null,
+          delayDays: null,
+          status: 'no_delivery',
+        });
+      } else {
+        // 找到最接近的实际到货记录
+        const closestReceipt = matchingReceipts.sort((a: ActualReceipt, b: ActualReceipt) => 
+          b.businessDate.localeCompare(a.businessDate)
+        )[0];
+
+        const actualDate = closestReceipt.businessDate;
+        const actualQuantity = parseFloat(closestReceipt.actualQuantity);
+
+        // 计算延迟天数
+        const promisedDateObj = new Date(promisedDate);
+        const actualDateObj = new Date(actualDate);
+        const delayDays = Math.floor(
+          (actualDateObj.getTime() - promisedDateObj.getTime()) / (1000 * 60 * 60 * 24)
+        );
+
+        // 判断状态
+        let status: 'on_time' | 'late' | 'early' = 'on_time';
+        if (delayDays > 0) {
+          status = 'late';
+        } else if (delayDays < 0) {
+          status = 'early';
+        }
+
+        details.push({
+          materialCode: materialItem.materialCode,
+          materialName: materialItem.materialName,
+          promisedDate,
+          promisedQuantity,
+          actualDate,
+          actualQuantity,
+          delayDays,
+          status,
+        });
+      }
+    }
+  }
+
+  return details;
+}

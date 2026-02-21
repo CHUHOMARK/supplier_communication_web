@@ -5,9 +5,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { TrendingUp, TrendingDown, Clock, AlertTriangle } from "lucide-react";
+import { SupplierDetailsDialog } from "@/components/SupplierDetailsDialog";
 
 export default function SupplierPerformanceReport() {
   const [selectedPlanId, setSelectedPlanId] = useState<number | null>(null);
+  const [selectedSupplier, setSelectedSupplier] = useState<{ name: string; planId: number } | null>(null);
 
   // 获取物料计划列表
   const { data: plans, isLoading: plansLoading } = trpc.materialPlan.list.useQuery();
@@ -81,7 +83,11 @@ export default function SupplierPerformanceReport() {
                 {/* 准时率统计卡片 */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                   {reportData.performanceStats.map((stat) => (
-                    <Card key={stat.supplierId}>
+                    <Card 
+                      key={stat.supplierId}
+                      className="cursor-pointer hover:shadow-lg transition-shadow"
+                      onClick={() => setSelectedSupplier({ name: stat.supplierName, planId: selectedPlanId! })}
+                    >
                       <CardHeader className="pb-3">
                         <CardTitle className="text-sm font-medium text-gray-600">
                           {stat.supplierName}
@@ -249,6 +255,16 @@ export default function SupplierPerformanceReport() {
           </Card>
         )}
       </div>
+
+      {/* 供应商详情对话框 */}
+      {selectedSupplier && (
+        <SupplierDetailsDialog
+          open={!!selectedSupplier}
+          onOpenChange={(open) => !open && setSelectedSupplier(null)}
+          supplierName={selectedSupplier.name}
+          planId={selectedSupplier.planId}
+        />
+      )}
     </div>
   );
 }

@@ -1705,6 +1705,21 @@ export const appRouter = router({
         );
         return comparison;
       }),
+
+    // 获取供应商详细差异对比数据
+    getSupplierDetails: protectedProcedure
+      .input(z.object({
+        planId: z.number(),
+        supplierName: z.string(),
+      }))
+      .query(async ({ ctx, input }) => {
+        const details = await db.getSupplierDeliveryDetails(
+          ctx.user.id,
+          input.planId,
+          input.supplierName
+        );
+        return details;
+      }),
   }),
 });
 
