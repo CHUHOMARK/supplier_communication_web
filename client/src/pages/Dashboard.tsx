@@ -14,7 +14,8 @@ import {
   Settings,
   LogOut,
   User,
-  Database
+  Database,
+  TrendingUp
 } from "lucide-react";
 
 export default function Dashboard() {
@@ -74,6 +75,14 @@ export default function Dashboard() {
       href: "/erp-import",
       color: "text-cyan-600",
       bgColor: "bg-cyan-50",
+    },
+    {
+      title: "对比分析",
+      description: "对比物料计划与实际到货，自动计算差异并生成分析报告",
+      icon: TrendingUp,
+      href: "/comparison",
+      color: "text-indigo-600",
+      bgColor: "bg-indigo-50",
     },
     {
       title: "系统设置",

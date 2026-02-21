@@ -26,6 +26,7 @@ import {
   InsertSmtpAccount,
   InsertNotification,
   InsertActualReceipt,
+  ActualReceipt,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -2037,4 +2038,157 @@ export async function getActualReceiptsForConfirmations(userId: number, confirma
       isOverdue: overdueDays > 0,
     };
   });
+}
+
+
+// ==================== 计划与实际对比分析相关函数 ====================
+
+/**
+ * 获取物料计划与ERP实际到货的对比数据
+ * @param userId 用户ID
+ * @param planId 物料计划ID
+ * @returns 对比数据列表
+ */
+export async function getComparisonData(userId: number, planId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not initialized");
+
+  // 1. 获取物料计划的日期范围
+  const plan = await db
+    .select()
+    .from(materialPlans)
+    .where(and(eq(materialPlans.id, planId), eq(materialPlans.userId, userId)))
+    .limit(1);
+
+  if (plan.length === 0) {
+    throw new Error("Material plan not found");
+  }
+
+  const { planStartDate, planEndDate } = plan[0];
+
+  // 2. 获取该计划下的所有物料明细
+  const materials = await db
+    .select()
+    .from(materialItems)
+    .where(eq(materialItems.planId, planId));
+
+  // 3. 获取该用户在日期范围内的所有ERP实际到货记录
+  const actualReceiptsList = await db
+    .select()
+    .from(actualReceipts)
+    .where(
+      and(
+        eq(actualReceipts.userId, userId),
+        sql`${actualReceipts.businessDate} >= ${planStartDate}`,
+        sql`${actualReceipts.businessDate} <= ${planEndDate}`
+      )
+    );
+
+  // 4. 构建对比数据
+  const comparisonData = materials.map((material) => {
+    const materialCode = material.materialCode;
+    const dailySchedule = material.dailySchedule as Record<string, number> || {};
+
+    // 获取该物料的所有实际到货记录
+    const materialReceipts = actualReceiptsList.filter(
+      (receipt: ActualReceipt) => receipt.materialCode === materialCode
+    );
+
+    // 按日期汇总实际到货数量
+    const actualByDate: Record<string, number> = {};
+    materialReceipts.forEach((receipt: ActualReceipt) => {
+      const date = receipt.businessDate;
+      const quantity = parseFloat(receipt.actualQuantity);
+      actualByDate[date] = (actualByDate[date] || 0) + quantity;
+    });
+
+    // 计算总计划和总实际
+    let totalPlanned = 0;
+    let totalActual = 0;
+
+    // 遍历所有日期，计算差异
+    const dailyComparison: Record<string, {
+      planned: number;
+      actual: number;
+      difference: number;
+      percentage: number;
+    }> = {};
+
+    Object.keys(dailySchedule).forEach((date) => {
+      const planned = dailySchedule[date] || 0;
+      const actual = actualByDate[date] || 0;
+      const difference = actual - planned;
+      const percentage = planned > 0 ? (actual / planned) * 100 : 0;
+
+      dailyComparison[date] = {
+        planned,
+        actual,
+        difference,
+        percentage,
+      };
+
+      totalPlanned += planned;
+      totalActual += actual;
+    });
+
+    // 如果有实际到货但没有计划的日期，也要包含
+    Object.keys(actualByDate).forEach((date) => {
+      if (!dailyComparison[date]) {
+        const actual = actualByDate[date];
+        dailyComparison[date] = {
+          planned: 0,
+          actual,
+          difference: actual,
+          percentage: 0,
+        };
+        totalActual += actual;
+      }
+    });
+
+    const totalDifference = totalActual - totalPlanned;
+    const totalPercentage = totalPlanned > 0 ? (totalActual / totalPlanned) * 100 : 0;
+
+    return {
+      materialCode,
+      materialName: material.materialName,
+      materialSpec: material.materialSpec,
+      dailyComparison,
+      totalPlanned,
+      totalActual,
+      totalDifference,
+      totalPercentage,
+    };
+  });
+
+  return comparisonData;
+}
+
+/**
+ * 获取对比分析的统计汇总
+ * @param userId 用户ID
+ * @param planId 物料计划ID
+ * @returns 统计汇总数据
+ */
+export async function getComparisonSummary(userId: number, planId: number) {
+  const comparisonData = await getComparisonData(userId, planId);
+
+  let totalPlanned = 0;
+  let totalActual = 0;
+  let totalDifference = 0;
+
+  comparisonData.forEach((item) => {
+    totalPlanned += item.totalPlanned;
+    totalActual += item.totalActual;
+    totalDifference += item.totalDifference;
+  });
+
+  const averagePercentage = totalPlanned > 0 ? (totalActual / totalPlanned) * 100 : 0;
+
+  return {
+    totalPlanned,
+    totalActual,
+    totalDifference,
+    averagePercentage,
+    materialCount: comparisonData.length,
+  };
 }
