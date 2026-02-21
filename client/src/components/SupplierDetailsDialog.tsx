@@ -1,8 +1,6 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 import { trpc } from "@/lib/trpc";
-import { CheckCircle2, XCircle, TrendingUp, AlertCircle } from "lucide-react";
+import { VirtualSupplierDetailsTable } from "@/components/VirtualSupplierDetailsTable";
 
 interface SupplierDetailsDialogProps {
   open: boolean;
@@ -22,47 +20,7 @@ export function SupplierDetailsDialog({
     { enabled: open && !!planId && !!supplierName }
   );
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'on_time':
-        return (
-          <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
-            <CheckCircle2 className="w-3 h-3 mr-1" />
-            准时
-          </Badge>
-        );
-      case 'late':
-        return (
-          <Badge className="bg-red-100 text-red-800 hover:bg-red-100">
-            <XCircle className="w-3 h-3 mr-1" />
-            逾期
-          </Badge>
-        );
-      case 'early':
-        return (
-          <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">
-            <TrendingUp className="w-3 h-3 mr-1" />
-            提前
-          </Badge>
-        );
-      case 'no_delivery':
-        return (
-          <Badge className="bg-gray-100 text-gray-800 hover:bg-gray-100">
-            <AlertCircle className="w-3 h-3 mr-1" />
-            未到货
-          </Badge>
-        );
-      default:
-        return null;
-    }
-  };
 
-  const formatDelayDays = (days: number | null) => {
-    if (days === null) return '-';
-    if (days === 0) return '准时';
-    if (days > 0) return `+${days}天`;
-    return `${days}天`;
-  };
 
   // 统计数据
   const stats = details ? {
@@ -109,44 +67,8 @@ export function SupplierDetailsDialog({
               </div>
             </div>
 
-            {/* 详情表格 */}
-            <div className="border rounded-lg">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>物料代码</TableHead>
-                    <TableHead>物料名称</TableHead>
-                    <TableHead>计划日期</TableHead>
-                    <TableHead>计划数量</TableHead>
-                    <TableHead>实际日期</TableHead>
-                    <TableHead>实际数量</TableHead>
-                    <TableHead>差异天数</TableHead>
-                    <TableHead>状态</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {details.map((detail, index) => (
-                    <TableRow key={index}>
-                      <TableCell className="font-mono text-sm">{detail.materialCode}</TableCell>
-                      <TableCell>{detail.materialName}</TableCell>
-                      <TableCell>{detail.promisedDate}</TableCell>
-                      <TableCell>{detail.promisedQuantity.toLocaleString()}</TableCell>
-                      <TableCell>{detail.actualDate || '-'}</TableCell>
-                      <TableCell>{detail.actualQuantity?.toLocaleString() || '-'}</TableCell>
-                      <TableCell className={
-                        detail.delayDays === null ? '' :
-                        detail.delayDays > 0 ? 'text-red-600 font-semibold' :
-                        detail.delayDays < 0 ? 'text-blue-600 font-semibold' :
-                        'text-green-600 font-semibold'
-                      }>
-                        {formatDelayDays(detail.delayDays)}
-                      </TableCell>
-                      <TableCell>{getStatusBadge(detail.status)}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+            {/* 详情表格 - 使用虚拟滚动 */}
+            <VirtualSupplierDetailsTable details={details} />
           </div>
         )}
 
