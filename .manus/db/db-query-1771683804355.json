@@ -1,0 +1,9 @@
+{
+  "query": "SELECT \n  sc.id AS confirmation_id,\n  s.supplierName,\n  sc.dailySchedule,\n  sc.status\nFROM supplier_confirmations sc\nJOIN suppliers s ON s.id = sc.supplierId\nWHERE sc.planId = (SELECT id FROM material_plans WHERE fileName LIKE '%1月5日-2月13日%' LIMIT 1)\n  AND s.supplierName LIKE '%江苏如意%'\nLIMIT 1;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway03.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2oD5Rpux9cjqHPq.05f21cb26eb8 --database ZuNBVd6CLssbosJUyd9j6x --execute SELECT \n  sc.id AS confirmation_id,\n  s.supplierName,\n  sc.dailySchedule,\n  sc.status\nFROM supplier_confirmations sc\nJOIN suppliers s ON s.id = sc.supplierId\nWHERE sc.planId = (SELECT id FROM material_plans WHERE fileName LIKE '%1月5日-2月13日%' LIMIT 1)\n  AND s.supplierName LIKE '%江苏如意%'\nLIMIT 1;",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 1542
+}

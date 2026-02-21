@@ -1,0 +1,8 @@
+{
+  "query": "SELECT \n  mi.materialCode,\n  mi.materialName,\n  mi.supplierName,\n  mi.dailySchedule\nFROM material_items mi\nWHERE mi.planId = (SELECT id FROM material_plans WHERE fileName LIKE '%1月5日-2月13日%' LIMIT 1)\n  AND mi.materialCode = 'A1502484'\nLIMIT 5;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway03.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2oD5Rpux9cjqHPq.05f21cb26eb8 --database ZuNBVd6CLssbosJUyd9j6x --execute SELECT \n  mi.materialCode,\n  mi.materialName,\n  mi.supplierName,\n  mi.dailySchedule\nFROM material_items mi\nWHERE mi.planId = (SELECT id FROM material_plans WHERE fileName LIKE '%1月5日-2月13日%' LIMIT 1)\n  AND mi.materialCode = 'A1502484'\nLIMIT 5;",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1054 (42S22) at line 1: Unknown column 'mi.suppliername' in 'field list'"
+  ]
+}

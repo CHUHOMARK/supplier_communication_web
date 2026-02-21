@@ -1,0 +1,19 @@
+{
+  "query": "-- 查询A1502484的计划数据\nSELECT \n  materialCode,\n  materialName,\n  dailySchedule\nFROM material_items\nWHERE planId = (SELECT id FROM material_plans WHERE fileName LIKE '%1月5日-2月13日%' LIMIT 1)\n  AND materialCode = 'A1502484';\n\n-- 查询A1502484的实际到货数据\nSELECT \n  materialCode,\n  businessDate,\n  actualQuantity,\n  supplierName\nFROM actual_receipts\nWHERE materialCode = 'A1502484'\nORDER BY businessDate;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway03.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2oD5Rpux9cjqHPq.05f21cb26eb8 --database ZuNBVd6CLssbosJUyd9j6x --execute -- 查询A1502484的计划数据\nSELECT \n  materialCode,\n  materialName,\n  dailySchedule\nFROM material_items\nWHERE planId = (SELECT id FROM material_plans WHERE fileName LIKE '%1月5日-2月13日%' LIMIT 1)\n  AND materialCode = 'A1502484';\n\n-- 查询A1502484的实际到货数据\nSELECT \n  materialCode,\n  businessDate,\n  actualQuantity,\n  supplierName\nFROM actual_receipts\nWHERE materialCode = 'A1502484'\nORDER BY businessDate;",
+  "rows": [
+    {
+      "materialCode": "A1502484",
+      "materialName": "2465-侧板1-A3",
+      "dailySchedule": "{\"2026-01-10\": 250}"
+    }
+  ],
+  "messages": [
+    "materialCode\tbusinessDate\tactualQuantity\tsupplierName",
+    "A1502484\t2026-01-09\t250.0000\t江苏如意高科新能源有限公司",
+    "A1502484\t2026-01-10\t250.0000\t江苏如意高科新能源有限公司"
+  ],
+  "stdout": "materialCode\tmaterialName\tdailySchedule\nA1502484\t2465-侧板1-A3\t{\"2026-01-10\": 250}\nmaterialCode\tbusinessDate\tactualQuantity\tsupplierName\nA1502484\t2026-01-09\t250.0000\t江苏如意高科新能源有限公司\nA1502484\t2026-01-10\t250.0000\t江苏如意高科新能源有限公司\n",
+  "stderr": "",
+  "execution_time_ms": 1754
+}

@@ -1,0 +1,22 @@
+{
+  "query": "SELECT \n  materialCode,\n  businessDate,\n  actualQuantity,\n  supplierName\nFROM actual_receipts\nWHERE materialCode = 'A1502484'\nORDER BY businessDate;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway03.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2oD5Rpux9cjqHPq.05f21cb26eb8 --database ZuNBVd6CLssbosJUyd9j6x --execute SELECT \n  materialCode,\n  businessDate,\n  actualQuantity,\n  supplierName\nFROM actual_receipts\nWHERE materialCode = 'A1502484'\nORDER BY businessDate;",
+  "rows": [
+    {
+      "materialCode": "A1502484",
+      "businessDate": "2026-01-09",
+      "actualQuantity": "250.0000",
+      "supplierName": "江苏如意高科新能源有限公司"
+    },
+    {
+      "materialCode": "A1502484",
+      "businessDate": "2026-01-10",
+      "actualQuantity": "250.0000",
+      "supplierName": "江苏如意高科新能源有限公司"
+    }
+  ],
+  "messages": [],
+  "stdout": "materialCode\tbusinessDate\tactualQuantity\tsupplierName\nA1502484\t2026-01-09\t250.0000\t江苏如意高科新能源有限公司\nA1502484\t2026-01-10\t250.0000\t江苏如意高科新能源有限公司\n",
+  "stderr": "",
+  "execution_time_ms": 1595
+}

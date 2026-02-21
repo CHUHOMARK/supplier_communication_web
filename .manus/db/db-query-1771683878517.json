@@ -1,0 +1,31 @@
+{
+  "query": "SELECT COUNT(*) as total_mappings FROM material_supplier_mappings;\nSELECT * FROM material_supplier_mappings LIMIT 5;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway03.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2oD5Rpux9cjqHPq.05f21cb26eb8 --database ZuNBVd6CLssbosJUyd9j6x --execute SELECT COUNT(*) as total_mappings FROM material_supplier_mappings;\nSELECT * FROM material_supplier_mappings LIMIT 5;",
+  "rows": [
+    {
+      "total_mappings": "2356"
+    },
+    {
+      "total_mappings": "id\tuserId\tmaterialCode\tsupplierId\tcreatedAt\tupdatedAt\tsharePercentage\tpriority\tnotes\tplanId"
+    },
+    {
+      "total_mappings": "360001\t1\tA0100001\t360001\t2026-01-24 16:32:19\t2026-01-24 16:32:19\t100.00\t1\tNULL\t360001"
+    },
+    {
+      "total_mappings": "360002\t1\tA0100038\t360001\t2026-01-24 16:32:19\t2026-01-24 16:32:19\t100.00\t1\tNULL\t360001"
+    },
+    {
+      "total_mappings": "360003\t1\tA0100046\t360001\t2026-01-24 16:32:19\t2026-01-24 16:32:19\t100.00\t1\tNULL\t360001"
+    },
+    {
+      "total_mappings": "360004\t1\tA0100062\t360001\t2026-01-24 16:32:19\t2026-01-24 16:32:19\t100.00\t1\tNULL\t360001"
+    },
+    {
+      "total_mappings": "360005\t1\tA0100136\t360001\t2026-01-24 16:32:19\t2026-01-24 16:32:19\t100.00\t1\tNULL\t360001"
+    }
+  ],
+  "messages": [],
+  "stdout": "total_mappings\n2356\nid\tuserId\tmaterialCode\tsupplierId\tcreatedAt\tupdatedAt\tsharePercentage\tpriority\tnotes\tplanId\n360001\t1\tA0100001\t360001\t2026-01-24 16:32:19\t2026-01-24 16:32:19\t100.00\t1\tNULL\t360001\n360002\t1\tA0100038\t360001\t2026-01-24 16:32:19\t2026-01-24 16:32:19\t100.00\t1\tNULL\t360001\n360003\t1\tA0100046\t360001\t2026-01-24 16:32:19\t2026-01-24 16:32:19\t100.00\t1\tNULL\t360001\n360004\t1\tA0100062\t360001\t2026-01-24 16:32:19\t2026-01-24 16:32:19\t100.00\t1\tNULL\t360001\n360005\t1\tA0100136\t360001\t2026-01-24 16:32:19\t2026-01-24 16:32:19\t100.00\t1\tNULL\t360001\n",
+  "stderr": "",
+  "execution_time_ms": 1732
+}

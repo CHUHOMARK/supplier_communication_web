@@ -1,0 +1,25 @@
+{
+  "query": "SELECT \n  s.id,\n  s.supplierName,\n  COUNT(sc.id) as confirmation_count\nFROM suppliers s\nLEFT JOIN supplier_confirmations sc ON s.id = sc.supplierId\nWHERE sc.planId = (SELECT id FROM material_plans WHERE fileName LIKE '%1月5日-2月13日%' LIMIT 1)\nGROUP BY s.id, s.supplierName\nORDER BY s.supplierName;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway03.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2oD5Rpux9cjqHPq.05f21cb26eb8 --database ZuNBVd6CLssbosJUyd9j6x --execute SELECT \n  s.id,\n  s.supplierName,\n  COUNT(sc.id) as confirmation_count\nFROM suppliers s\nLEFT JOIN supplier_confirmations sc ON s.id = sc.supplierId\nWHERE sc.planId = (SELECT id FROM material_plans WHERE fileName LIKE '%1月5日-2月13日%' LIMIT 1)\nGROUP BY s.id, s.supplierName\nORDER BY s.supplierName;",
+  "rows": [
+    {
+      "id": "360048",
+      "supplierName": "广州鹏辉储能科技有限公司",
+      "confirmation_count": "1"
+    },
+    {
+      "id": "360060",
+      "supplierName": "河北友谊电气设备有限公司",
+      "confirmation_count": "1"
+    },
+    {
+      "id": "360041",
+      "supplierName": "苏州斯塔克电子科技有限公司",
+      "confirmation_count": "1"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tsupplierName\tconfirmation_count\n360048\t广州鹏辉储能科技有限公司\t1\n360060\t河北友谊电气设备有限公司\t1\n360041\t苏州斯塔克电子科技有限公司\t1\n",
+  "stderr": "",
+  "execution_time_ms": 1580
+}

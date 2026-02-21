@@ -2058,24 +2058,7 @@ export async function getSupplierPerformanceStats(userId: number, planId: number
   const db = await getDb();
   if (!db) throw new Error("Database not initialized");
 
-  // 1. 获取该计划的所有供应商确认记录
-  const confirmations = await db
-    .select({
-      confirmationId: supplierConfirmations.id,
-      supplierId: supplierConfirmations.supplierId,
-      supplierName: suppliers.supplierName,
-      dailySchedule: supplierConfirmations.dailySchedule,
-    })
-    .from(supplierConfirmations)
-    .innerJoin(suppliers, eq(suppliers.id, supplierConfirmations.supplierId))
-    .where(
-      and(
-        eq(supplierConfirmations.userId, userId),
-        eq(supplierConfirmations.planId, planId)
-      )
-    );
-
-  // 2. 获取该计划的日期范围
+  // 1. 获取该计划的日期范围
   const plan = await db
     .select()
     .from(materialPlans)
@@ -2087,6 +2070,12 @@ export async function getSupplierPerformanceStats(userId: number, planId: number
   }
 
   const { planStartDate, planEndDate } = plan[0];
+
+  // 2. 获取该计划的所有物料明细（包含计划交期）
+  const materialItemsList = await db
+    .select()
+    .from(materialItems)
+    .where(eq(materialItems.planId, planId));
 
   // 3. 获取该用户在日期范围内的所有ERP实际到货记录
   const actualReceiptsList = await db
@@ -2100,92 +2089,93 @@ export async function getSupplierPerformanceStats(userId: number, planId: number
       )
     );
 
-  // 4. 获取物料-供应商映射关系
-  const mappings = await db
-    .select()
-    .from(materialSupplierMappings)
-    .where(eq(materialSupplierMappings.planId, planId));
+  // 4. 按供应商名称分组统计
+  const supplierStatsMap = new Map<string, {
+    onTimeCount: number;
+    lateCount: number;
+    totalDelayDays: number;
+  }>();
 
-  // 5. 计算每个供应商的准时率
-  const performanceStats = await Promise.all(
-    confirmations.map(async (confirmation) => {
-      const dailySchedule = confirmation.dailySchedule as Record<string, number> || {};
-      
-      // 获取该供应商负责的物料
-      const supplierMaterials = mappings
-        .filter((m) => m.supplierId === confirmation.supplierId)
-        .map((m) => m.materialCode);
+  // 5. 遍历所有ERP实际到货记录，对比计划与实际
+  for (const receipt of actualReceiptsList) {
+    const supplierName = receipt.supplierName || '未知供应商';
+    const actualDate = receipt.businessDate;
+    const materialCode = receipt.materialCode;
 
-      // 获取该供应商的实际到货记录
-      const supplierReceipts = actualReceiptsList.filter(
-        (receipt: ActualReceipt) => 
-          supplierMaterials.includes(receipt.materialCode) &&
-          receipt.supplierName === confirmation.supplierName
-      );
+    // 查找该物料的计划数据
+    const materialItem = materialItemsList.find(
+      (item) => item.materialCode === materialCode
+    );
 
-      // 按日期对比承诺和实际
-      let onTimeCount = 0;
-      let lateCount = 0;
-      let totalDelayDays = 0;
+    // 如果找不到该物料的计划数据，跳过
+    if (!materialItem) continue;
 
-      Object.keys(dailySchedule).forEach((promisedDate) => {
-        const promisedQuantity = dailySchedule[promisedDate];
-        
-        // 查找该日期的实际到货
-        const actualReceipt = supplierReceipts.find(
-          (r: ActualReceipt) => r.businessDate === promisedDate
-        );
+    // 确保dailySchedule是对象而不是字符串
+    let dailySchedule: Record<string, number>;
+    if (typeof materialItem.dailySchedule === 'string') {
+      dailySchedule = JSON.parse(materialItem.dailySchedule);
+    } else {
+      dailySchedule = (materialItem.dailySchedule as Record<string, number>) || {};
+    }
 
-        if (actualReceipt) {
-          // 准时到货
-          onTimeCount++;
-        } else {
-          // 查找是否有延迟到货
-          const laterReceipts = supplierReceipts.filter(
-            (r: ActualReceipt) => r.businessDate > promisedDate
-          );
+    // 查找最近的计划日期（小于等于实际到货日期）
+    const promisedDates = Object.keys(dailySchedule)
+      .filter(d => d <= actualDate)
+      .sort();
 
-          if (laterReceipts.length > 0) {
-            // 找到最早的延迟到货记录
-            const earliestLateReceipt = laterReceipts.sort(
-              (a: ActualReceipt, b: ActualReceipt) => 
-                a.businessDate.localeCompare(b.businessDate)
-            )[0];
+    // 如果没有计划日期，跳过
+    if (promisedDates.length === 0) continue;
 
-            // 计算延迟天数
-            const promisedDateObj = new Date(promisedDate);
-            const actualDateObj = new Date(earliestLateReceipt.businessDate);
-            const delayDays = Math.floor(
-              (actualDateObj.getTime() - promisedDateObj.getTime()) / (1000 * 60 * 60 * 24)
-            );
+    const promisedDate = promisedDates[promisedDates.length - 1]; // 最近的计划日期
 
-            lateCount++;
-            totalDelayDays += delayDays;
-          } else {
-            // 完全没有到货，视为严重逾期
-            lateCount++;
-            totalDelayDays += 999; // 使用一个大数值表示严重逾期
-          }
-        }
+    // 初始化供应商统计
+    if (!supplierStatsMap.has(supplierName)) {
+      supplierStatsMap.set(supplierName, {
+        onTimeCount: 0,
+        lateCount: 0,
+        totalDelayDays: 0,
       });
+    }
 
-      const totalCount = onTimeCount + lateCount;
-      const onTimeRate = totalCount > 0 ? (onTimeCount / totalCount) * 100 : 0;
-      const lateRate = totalCount > 0 ? (lateCount / totalCount) * 100 : 0;
-      const avgDelayDays = lateCount > 0 ? totalDelayDays / lateCount : 0;
+    const stats = supplierStatsMap.get(supplierName)!;
 
-      return {
-        supplierId: confirmation.supplierId,
-        supplierName: confirmation.supplierName,
-        onTimeCount,
-        lateCount,
-        totalCount,
-        onTimeRate,
-        lateRate,
-        avgDelayDays,
-      };
-    })
-  );
+    // 判断是否准时
+    if (actualDate === promisedDate) {
+      // 准时到货
+      stats.onTimeCount++;
+    } else if (actualDate > promisedDate) {
+      // 逾期到货
+      const promisedDateObj = new Date(promisedDate);
+      const actualDateObj = new Date(actualDate);
+      const delayDays = Math.floor(
+        (actualDateObj.getTime() - promisedDateObj.getTime()) / (1000 * 60 * 60 * 24)
+      );
+      stats.lateCount++;
+      stats.totalDelayDays += delayDays;
+    } else {
+      // 提前到货，也算准时
+      stats.onTimeCount++;
+    }
+  }
+
+  // 6. 将Map转换为数组
+  const performanceStats = Array.from(supplierStatsMap.entries()).map(([supplierName, stats]) => {
+    const totalCount = stats.onTimeCount + stats.lateCount;
+    const onTimeRate = totalCount > 0 ? (stats.onTimeCount / totalCount) * 100 : 0;
+    const lateRate = totalCount > 0 ? (stats.lateCount / totalCount) * 100 : 0;
+    const avgDelayDays = stats.lateCount > 0 ? stats.totalDelayDays / stats.lateCount : 0;
+
+    return {
+      supplierId: 0, // 不再依赖supplierId
+      supplierName,
+      onTimeCount: stats.onTimeCount,
+      lateCount: stats.lateCount,
+      totalCount,
+      onTimeRate,
+      lateRate,
+      avgDelayDays,
+    };
+  });
 
   return performanceStats;
 }

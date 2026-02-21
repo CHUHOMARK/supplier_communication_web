@@ -1,0 +1,90 @@
+{
+  "query": "SELECT id, supplierName FROM suppliers ORDER BY supplierName LIMIT 20;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway03.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2oD5Rpux9cjqHPq.05f21cb26eb8 --database ZuNBVd6CLssbosJUyd9j6x --execute SELECT id, supplierName FROM suppliers ORDER BY supplierName LIMIT 20;",
+  "rows": [
+    {
+      "id": "420001",
+      "supplierName": "Test Supplier A"
+    },
+    {
+      "id": "360033",
+      "supplierName": "上海为鼎新能源科技有限公司"
+    },
+    {
+      "id": "390033",
+      "supplierName": "上海为鼎新能源科技有限公司"
+    },
+    {
+      "id": "360021",
+      "supplierName": "上海佳丰电子科技有限公司"
+    },
+    {
+      "id": "390021",
+      "supplierName": "上海佳丰电子科技有限公司"
+    },
+    {
+      "id": "360006",
+      "supplierName": "上海创晶电子有限公司"
+    },
+    {
+      "id": "390006",
+      "supplierName": "上海创晶电子有限公司"
+    },
+    {
+      "id": "360097",
+      "supplierName": "上海创萃电子有限公司"
+    },
+    {
+      "id": "390097",
+      "supplierName": "上海创萃电子有限公司"
+    },
+    {
+      "id": "390083",
+      "supplierName": "上海合弘不锈钢制品有限公司"
+    },
+    {
+      "id": "360083",
+      "supplierName": "上海合弘不锈钢制品有限公司"
+    },
+    {
+      "id": "390092",
+      "supplierName": "上海孜尚物联网科技有限公司"
+    },
+    {
+      "id": "360092",
+      "supplierName": "上海孜尚物联网科技有限公司"
+    },
+    {
+      "id": "360011",
+      "supplierName": "上海安驰电子有限公司"
+    },
+    {
+      "id": "390011",
+      "supplierName": "上海安驰电子有限公司"
+    },
+    {
+      "id": "390009",
+      "supplierName": "上海岑彭电子科技有限公司"
+    },
+    {
+      "id": "360009",
+      "supplierName": "上海岑彭电子科技有限公司"
+    },
+    {
+      "id": "360034",
+      "supplierName": "上海新泗威电子有限公司"
+    },
+    {
+      "id": "390034",
+      "supplierName": "上海新泗威电子有限公司"
+    },
+    {
+      "id": "360141",
+      "supplierName": "上海楹裕电子有限公司"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tsupplierName\n420001\tTest Supplier A\n360033\t上海为鼎新能源科技有限公司\n390033\t上海为鼎新能源科技有限公司\n360021\t上海佳丰电子科技有限公司\n390021\t上海佳丰电子科技有限公司\n360006\t上海创晶电子有限公司\n390006\t上海创晶电子有限公司\n360097\t上海创萃电子有限公司\n390097\t上海创萃电子有限公司\n390083\t上海合弘不锈钢制品有限公司\n360083\t上海合弘不锈钢制品有限公司\n390092\t上海孜尚物联网科技有限公司\n360092\t上海孜尚物联网科技有限公司\n360011\t上海安驰电子有限公司\n390011\t上海安驰电子有限公司\n390009\t上海岑彭电子科技有限公司\n360009\t上海岑彭电子科技有限公司\n360034\t上海新泗威电子有限公司\n390034\t上海新泗威电子有限公司\n360141\t上海楹裕电子有限公司\n",
+  "stderr": "",
+  "execution_time_ms": 1574
+}
