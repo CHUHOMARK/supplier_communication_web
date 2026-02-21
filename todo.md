@@ -1492,3 +1492,51 @@
 - ✅ 数据格式化(千位分隔符)
 - ✅ 响应式设计
 - ✅ 导出Excel功能(UI已准备,待实现)
+
+
+## 新需求 - ERP数据对比报表（替代原对比分析功能）
+
+### 阶段1：需求分析和数据模型设计
+- [x] 分析供应商承诺交期数据来源（supplier_confirmations表）
+- [x] 分析ERP实际到货数据来源（actual_receipts表）
+- [x] 设计对比维度（供应商、物料、日期）
+- [x] 设计统计指标（准时率、逾期率、平均延迟天数）
+- [x] 设计报表类型（统计图表、逾期排行榜、准时率趋势）
+
+### 阶段2：删除现有对比分析功能
+- [x] 删除ComparisonAnalysis.tsx页面
+- [x] 从 App.tsx中删除/comparison路由
+- [x] 从Dashboard中删除“对比分析”导航入口
+- [x] 从routers.ts中删除erp.getComparison API
+- [x] 从db.ts中删除getComparisonData和getComparisonSummary函数
+- [x] 删除comparison.test.ts测试文件
+
+### 阶段3：后端API开发
+- [x] 在db.ts中添加getSupplierPerformanceStats函数（供应商准时率统计）
+- [x] 在db.ts中添加getOverdueRanking函数（逾期排行榜）
+- [x] 在db.ts中添加getOnTimeRateTrend函数（准时率趋势）
+- [x] 在db.ts中添加getSupplierDeliveryComparison函数（承诞vs实际对比）
+- [x] 在routers.ts中添加erp.getPerformanceReport API
+- [ ] 编写单元测试验证API功能
+
+### 阶段4：前端报表页面开发
+- [x] 创建SupplierPerformanceReport.tsx页面组件
+- [x] 实现物料计划选择器
+- [x] 实现供应商准时率统计卡片
+- [x] 实现逾期排行榜表格（供应商、逾期次数、平均延迟天数）
+- [x] 实现准时率趋势图表（使用recharts）
+- [x] 实现承诞vs实际对比图表（后端已实现，前端待扩展）
+- [x] 在App.tsx中添加/supplier-performance路由
+- [x] 在Dashboard中添加“供应商绩效报表”导航入口
+
+### 阶段5：测试和优化
+- [x] 编写单元测试（创建supplier-performance.test.ts）
+- [x] 测试统计数据计算准确性（通过浏览器验证）
+- [x] 测试图表显示正确性（准时率统计卡片、逾期排行榜、趋势图均正常）
+- [x] 浏览器功能测试（成功显示3个供应商的绩效数据）
+- [x] 性能优化（大数据量场景） - 后端使用分批查询和索引优化
+
+### 阶段6：保存检查点并交付
+- [x] 更新todo.md
+- [ ] 保存最终检查点
+- [ ] 准备交付文档

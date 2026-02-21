@@ -16,7 +16,8 @@ import UploadPlan from "./pages/UploadPlan";
 import Suppliers from "./pages/Suppliers";
 import Emails from "./pages/Emails";
 import ERPImport from "./pages/ERPImport";
-import ComparisonAnalysis from "./pages/ComparisonAnalysis";
+import SupplierPerformanceReport from "./pages/SupplierPerformanceReport";
+
 import { useAuth } from "./_core/hooks/useAuth";
 import { useEffect } from "react";
 import { useLocation } from "wouter";
@@ -80,9 +81,10 @@ function Router() {
       <Route path={"/erp-import"}>
         <ProtectedRoute component={ERPImport} />
       </Route>
-      <Route path={"/comparison"}>
-        <ProtectedRoute component={ComparisonAnalysis} />
+      <Route path={"/supplier-performance"}>
+        <ProtectedRoute component={SupplierPerformanceReport} />
       </Route>
+
       <Route path={"/404"} component={NotFound} />
       <Route component={NotFound} />
     </Switch>

@@ -77,10 +77,10 @@ export default function Dashboard() {
       bgColor: "bg-cyan-50",
     },
     {
-      title: "对比分析",
-      description: "对比物料计划与实际到货，自动计算差异并生成分析报告",
+      title: "供应商绩效报表",
+      description: "显示供应商承诺交期vs实际到货的统计图表、逾期排行榜、准时率趋势",
       icon: TrendingUp,
-      href: "/comparison",
+      href: "/supplier-performance",
       color: "text-indigo-600",
       bgColor: "bg-indigo-50",
     },

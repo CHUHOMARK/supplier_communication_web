@@ -1646,26 +1646,6 @@ export const appRouter = router({
         };
       }),
 
-    // 获取计划与实际对比数据
-    getComparison: protectedProcedure
-      .input(z.object({
-        planId: z.number(),
-      }))
-      .query(async ({ ctx, input }) => {
-        const comparisonData = await db.getComparisonData(ctx.user.id, input.planId);
-        return comparisonData;
-      }),
-
-    // 获取对比分析统计汇总
-    getComparisonSummary: protectedProcedure
-      .input(z.object({
-        planId: z.number(),
-      }))
-      .query(async ({ ctx, input }) => {
-        const summary = await db.getComparisonSummary(ctx.user.id, input.planId);
-        return summary;
-      }),
-
     // 获取供应商逾期统计
     getOverdueAnalysis: protectedProcedure
       .query(async ({ ctx }) => {
@@ -1684,6 +1664,46 @@ export const appRouter = router({
           input.confirmationIds
         );
         return receipts;
+      }),
+
+    // 获取供应商绩效报表
+    getPerformanceReport: protectedProcedure
+      .input(z.object({
+        planId: z.number(),
+      }))
+      .query(async ({ ctx, input }) => {
+        const performanceStats = await db.getSupplierPerformanceStats(
+          ctx.user.id,
+          input.planId
+        );
+        const overdueRanking = await db.getOverdueRanking(
+          ctx.user.id,
+          input.planId
+        );
+        const onTimeRateTrend = await db.getOnTimeRateTrend(
+          ctx.user.id,
+          input.planId
+        );
+        return {
+          performanceStats,
+          overdueRanking,
+          onTimeRateTrend,
+        };
+      }),
+
+    // 获取供应商交付对比数据
+    getSupplierDeliveryComparison: protectedProcedure
+      .input(z.object({
+        planId: z.number(),
+        supplierId: z.number(),
+      }))
+      .query(async ({ ctx, input }) => {
+        const comparison = await db.getSupplierDeliveryComparison(
+          ctx.user.id,
+          input.planId,
+          input.supplierId
+        );
+        return comparison;
       }),
   }),
 });

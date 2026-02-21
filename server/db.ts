@@ -2043,17 +2043,39 @@ export async function getActualReceiptsForConfirmations(userId: number, confirma
 
 // ==================== 计划与实际对比分析相关函数 ====================
 
+
+
+
+// ==================== 供应商绩效报表相关函数 ====================
+
 /**
- * 获取物料计划与ERP实际到货的对比数据
+ * 获取供应商准时率统计
  * @param userId 用户ID
  * @param planId 物料计划ID
- * @returns 对比数据列表
+ * @returns 供应商准时率统计列表
  */
-export async function getComparisonData(userId: number, planId: number) {
+export async function getSupplierPerformanceStats(userId: number, planId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not initialized");
 
-  // 1. 获取物料计划的日期范围
+  // 1. 获取该计划的所有供应商确认记录
+  const confirmations = await db
+    .select({
+      confirmationId: supplierConfirmations.id,
+      supplierId: supplierConfirmations.supplierId,
+      supplierName: suppliers.supplierName,
+      dailySchedule: supplierConfirmations.dailySchedule,
+    })
+    .from(supplierConfirmations)
+    .innerJoin(suppliers, eq(suppliers.id, supplierConfirmations.supplierId))
+    .where(
+      and(
+        eq(supplierConfirmations.userId, userId),
+        eq(supplierConfirmations.planId, planId)
+      )
+    );
+
+  // 2. 获取该计划的日期范围
   const plan = await db
     .select()
     .from(materialPlans)
@@ -2065,12 +2087,6 @@ export async function getComparisonData(userId: number, planId: number) {
   }
 
   const { planStartDate, planEndDate } = plan[0];
-
-  // 2. 获取该计划下的所有物料明细
-  const materials = await db
-    .select()
-    .from(materialItems)
-    .where(eq(materialItems.planId, planId));
 
   // 3. 获取该用户在日期范围内的所有ERP实际到货记录
   const actualReceiptsList = await db
@@ -2084,111 +2100,357 @@ export async function getComparisonData(userId: number, planId: number) {
       )
     );
 
-  // 4. 构建对比数据
-  const comparisonData = materials.map((material) => {
-    const materialCode = material.materialCode;
-    const dailySchedule = material.dailySchedule as Record<string, number> || {};
+  // 4. 获取物料-供应商映射关系
+  const mappings = await db
+    .select()
+    .from(materialSupplierMappings)
+    .where(eq(materialSupplierMappings.planId, planId));
 
-    // 获取该物料的所有实际到货记录
-    const materialReceipts = actualReceiptsList.filter(
-      (receipt: ActualReceipt) => receipt.materialCode === materialCode
-    );
+  // 5. 计算每个供应商的准时率
+  const performanceStats = await Promise.all(
+    confirmations.map(async (confirmation) => {
+      const dailySchedule = confirmation.dailySchedule as Record<string, number> || {};
+      
+      // 获取该供应商负责的物料
+      const supplierMaterials = mappings
+        .filter((m) => m.supplierId === confirmation.supplierId)
+        .map((m) => m.materialCode);
 
-    // 按日期汇总实际到货数量
-    const actualByDate: Record<string, number> = {};
-    materialReceipts.forEach((receipt: ActualReceipt) => {
-      const date = receipt.businessDate;
-      const quantity = parseFloat(receipt.actualQuantity);
-      actualByDate[date] = (actualByDate[date] || 0) + quantity;
-    });
+      // 获取该供应商的实际到货记录
+      const supplierReceipts = actualReceiptsList.filter(
+        (receipt: ActualReceipt) => 
+          supplierMaterials.includes(receipt.materialCode) &&
+          receipt.supplierName === confirmation.supplierName
+      );
 
-    // 计算总计划和总实际
-    let totalPlanned = 0;
-    let totalActual = 0;
+      // 按日期对比承诺和实际
+      let onTimeCount = 0;
+      let lateCount = 0;
+      let totalDelayDays = 0;
 
-    // 遍历所有日期，计算差异
-    const dailyComparison: Record<string, {
-      planned: number;
-      actual: number;
-      difference: number;
-      percentage: number;
-    }> = {};
+      Object.keys(dailySchedule).forEach((promisedDate) => {
+        const promisedQuantity = dailySchedule[promisedDate];
+        
+        // 查找该日期的实际到货
+        const actualReceipt = supplierReceipts.find(
+          (r: ActualReceipt) => r.businessDate === promisedDate
+        );
 
-    Object.keys(dailySchedule).forEach((date) => {
-      const planned = dailySchedule[date] || 0;
-      const actual = actualByDate[date] || 0;
-      const difference = actual - planned;
-      const percentage = planned > 0 ? (actual / planned) * 100 : 0;
+        if (actualReceipt) {
+          // 准时到货
+          onTimeCount++;
+        } else {
+          // 查找是否有延迟到货
+          const laterReceipts = supplierReceipts.filter(
+            (r: ActualReceipt) => r.businessDate > promisedDate
+          );
 
-      dailyComparison[date] = {
-        planned,
-        actual,
-        difference,
-        percentage,
+          if (laterReceipts.length > 0) {
+            // 找到最早的延迟到货记录
+            const earliestLateReceipt = laterReceipts.sort(
+              (a: ActualReceipt, b: ActualReceipt) => 
+                a.businessDate.localeCompare(b.businessDate)
+            )[0];
+
+            // 计算延迟天数
+            const promisedDateObj = new Date(promisedDate);
+            const actualDateObj = new Date(earliestLateReceipt.businessDate);
+            const delayDays = Math.floor(
+              (actualDateObj.getTime() - promisedDateObj.getTime()) / (1000 * 60 * 60 * 24)
+            );
+
+            lateCount++;
+            totalDelayDays += delayDays;
+          } else {
+            // 完全没有到货，视为严重逾期
+            lateCount++;
+            totalDelayDays += 999; // 使用一个大数值表示严重逾期
+          }
+        }
+      });
+
+      const totalCount = onTimeCount + lateCount;
+      const onTimeRate = totalCount > 0 ? (onTimeCount / totalCount) * 100 : 0;
+      const lateRate = totalCount > 0 ? (lateCount / totalCount) * 100 : 0;
+      const avgDelayDays = lateCount > 0 ? totalDelayDays / lateCount : 0;
+
+      return {
+        supplierId: confirmation.supplierId,
+        supplierName: confirmation.supplierName,
+        onTimeCount,
+        lateCount,
+        totalCount,
+        onTimeRate,
+        lateRate,
+        avgDelayDays,
       };
+    })
+  );
 
-      totalPlanned += planned;
-      totalActual += actual;
-    });
-
-    // 如果有实际到货但没有计划的日期，也要包含
-    Object.keys(actualByDate).forEach((date) => {
-      if (!dailyComparison[date]) {
-        const actual = actualByDate[date];
-        dailyComparison[date] = {
-          planned: 0,
-          actual,
-          difference: actual,
-          percentage: 0,
-        };
-        totalActual += actual;
-      }
-    });
-
-    const totalDifference = totalActual - totalPlanned;
-    const totalPercentage = totalPlanned > 0 ? (totalActual / totalPlanned) * 100 : 0;
-
-    return {
-      materialCode,
-      materialName: material.materialName,
-      materialSpec: material.materialSpec,
-      dailyComparison,
-      totalPlanned,
-      totalActual,
-      totalDifference,
-      totalPercentage,
-    };
-  });
-
-  return comparisonData;
+  return performanceStats;
 }
 
 /**
- * 获取对比分析的统计汇总
+ * 获取逾期排行榜
  * @param userId 用户ID
  * @param planId 物料计划ID
- * @returns 统计汇总数据
+ * @returns 逾期排行榜（按逾期次数降序）
  */
-export async function getComparisonSummary(userId: number, planId: number) {
-  const comparisonData = await getComparisonData(userId, planId);
+export async function getOverdueRanking(userId: number, planId: number) {
+  const performanceStats = await getSupplierPerformanceStats(userId, planId);
+  
+  // 按逾期次数降序排序
+  const ranking = performanceStats
+    .sort((a, b) => b.lateCount - a.lateCount)
+    .map((stat, index) => ({
+      rank: index + 1,
+      ...stat,
+    }));
 
-  let totalPlanned = 0;
-  let totalActual = 0;
-  let totalDifference = 0;
+  return ranking;
+}
 
-  comparisonData.forEach((item) => {
-    totalPlanned += item.totalPlanned;
-    totalActual += item.totalActual;
-    totalDifference += item.totalDifference;
+/**
+ * 获取准时率趋势
+ * @param userId 用户ID
+ * @param planId 物料计划ID
+ * @returns 按日期的准时率趋势数据
+ */
+export async function getOnTimeRateTrend(userId: number, planId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not initialized");
+
+  // 1. 获取该计划的所有供应商确认记录
+  const confirmations = await db
+    .select({
+      confirmationId: supplierConfirmations.id,
+      supplierId: supplierConfirmations.supplierId,
+      supplierName: suppliers.supplierName,
+      dailySchedule: supplierConfirmations.dailySchedule,
+    })
+    .from(supplierConfirmations)
+    .innerJoin(suppliers, eq(suppliers.id, supplierConfirmations.supplierId))
+    .where(
+      and(
+        eq(supplierConfirmations.userId, userId),
+        eq(supplierConfirmations.planId, planId)
+      )
+    );
+
+  // 2. 获取该计划的日期范围
+  const plan = await db
+    .select()
+    .from(materialPlans)
+    .where(and(eq(materialPlans.id, planId), eq(materialPlans.userId, userId)))
+    .limit(1);
+
+  if (plan.length === 0) {
+    throw new Error("Material plan not found");
+  }
+
+  const { planStartDate, planEndDate } = plan[0];
+
+  // 3. 获取该用户在日期范围内的所有ERP实际到货记录
+  const actualReceiptsList = await db
+    .select()
+    .from(actualReceipts)
+    .where(
+      and(
+        eq(actualReceipts.userId, userId),
+        sql`${actualReceipts.businessDate} >= ${planStartDate}`,
+        sql`${actualReceipts.businessDate} <= ${planEndDate}`
+      )
+    );
+
+  // 4. 获取物料-供应商映射关系
+  const mappings = await db
+    .select()
+    .from(materialSupplierMappings)
+    .where(eq(materialSupplierMappings.planId, planId));
+
+  // 5. 收集所有承诺日期
+  const allDates = new Set<string>();
+  confirmations.forEach((confirmation) => {
+    const dailySchedule = confirmation.dailySchedule as Record<string, number> || {};
+    Object.keys(dailySchedule).forEach((date) => allDates.add(date));
   });
 
-  const averagePercentage = totalPlanned > 0 ? (totalActual / totalPlanned) * 100 : 0;
+  // 6. 按日期计算准时率
+  const trendData = Array.from(allDates)
+    .sort()
+    .map((date) => {
+      let onTimeCount = 0;
+      let totalCount = 0;
+
+      confirmations.forEach((confirmation) => {
+        const dailySchedule = confirmation.dailySchedule as Record<string, number> || {};
+        
+        if (dailySchedule[date]) {
+          totalCount++;
+
+          // 获取该供应商负责的物料
+          const supplierMaterials = mappings
+            .filter((m) => m.supplierId === confirmation.supplierId)
+            .map((m) => m.materialCode);
+
+          // 查找该日期的实际到货
+          const actualReceipt = actualReceiptsList.find(
+            (r: ActualReceipt) => 
+              r.businessDate === date &&
+              supplierMaterials.includes(r.materialCode) &&
+              r.supplierName === confirmation.supplierName
+          );
+
+          if (actualReceipt) {
+            onTimeCount++;
+          }
+        }
+      });
+
+      const onTimeRate = totalCount > 0 ? (onTimeCount / totalCount) * 100 : 0;
+
+      return {
+        date,
+        onTimeCount,
+        totalCount,
+        onTimeRate,
+      };
+    });
+
+  return trendData;
+}
+
+/**
+ * 获取供应商承诺vs实际对比数据
+ * @param userId 用户ID
+ * @param planId 物料计划ID
+ * @param supplierId 供应商ID
+ * @returns 该供应商的承诺交期和实际到货对比数据
+ */
+export async function getSupplierDeliveryComparison(
+  userId: number,
+  planId: number,
+  supplierId: number
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not initialized");
+
+  // 1. 获取该供应商的确认记录
+  const confirmation = await db
+    .select({
+      confirmationId: supplierConfirmations.id,
+      supplierId: supplierConfirmations.supplierId,
+      supplierName: suppliers.supplierName,
+      dailySchedule: supplierConfirmations.dailySchedule,
+    })
+    .from(supplierConfirmations)
+    .innerJoin(suppliers, eq(suppliers.id, supplierConfirmations.supplierId))
+    .where(
+      and(
+        eq(supplierConfirmations.userId, userId),
+        eq(supplierConfirmations.planId, planId),
+        eq(supplierConfirmations.supplierId, supplierId)
+      )
+    )
+    .limit(1);
+
+  if (confirmation.length === 0) {
+    throw new Error("Supplier confirmation not found");
+  }
+
+  const { supplierName, dailySchedule } = confirmation[0];
+
+  // 2. 获取该计划的日期范围
+  const plan = await db
+    .select()
+    .from(materialPlans)
+    .where(and(eq(materialPlans.id, planId), eq(materialPlans.userId, userId)))
+    .limit(1);
+
+  if (plan.length === 0) {
+    throw new Error("Material plan not found");
+  }
+
+  const { planStartDate, planEndDate } = plan[0];
+
+  // 3. 获取该供应商负责的物料
+  const mappings = await db
+    .select()
+    .from(materialSupplierMappings)
+    .where(
+      and(
+        eq(materialSupplierMappings.planId, planId),
+        eq(materialSupplierMappings.supplierId, supplierId)
+      )
+    );
+
+  const supplierMaterials = mappings.map((m) => m.materialCode);
+
+  // 4. 获取该供应商的实际到货记录
+  const actualReceiptsList = await db
+    .select()
+    .from(actualReceipts)
+    .where(
+      and(
+        eq(actualReceipts.userId, userId),
+        eq(actualReceipts.supplierName, supplierName),
+        sql`${actualReceipts.businessDate} >= ${planStartDate}`,
+        sql`${actualReceipts.businessDate} <= ${planEndDate}`
+      )
+    );
+
+  // 5. 按日期对比承诺和实际
+  const schedule = dailySchedule as Record<string, number> || {};
+  const comparisonData = Object.keys(schedule).map((date) => {
+    const promisedQuantity = schedule[date];
+    
+    // 查找该日期的实际到货
+    const actualReceipt = actualReceiptsList.find(
+      (r: ActualReceipt) => 
+        r.businessDate === date &&
+        supplierMaterials.includes(r.materialCode)
+    );
+
+    const actualQuantity = actualReceipt ? parseFloat(actualReceipt.actualQuantity) : 0;
+    const difference = actualQuantity - promisedQuantity;
+    const status = actualReceipt ? "on_time" : "late";
+
+    // 如果逾期，计算延迟天数
+    let delayDays = 0;
+    if (!actualReceipt) {
+      const laterReceipts = actualReceiptsList.filter(
+        (r: ActualReceipt) => 
+          r.businessDate > date &&
+          supplierMaterials.includes(r.materialCode)
+      );
+
+      if (laterReceipts.length > 0) {
+        const earliestLateReceipt = laterReceipts.sort(
+          (a: ActualReceipt, b: ActualReceipt) => 
+            a.businessDate.localeCompare(b.businessDate)
+        )[0];
+
+        const promisedDateObj = new Date(date);
+        const actualDateObj = new Date(earliestLateReceipt.businessDate);
+        delayDays = Math.floor(
+          (actualDateObj.getTime() - promisedDateObj.getTime()) / (1000 * 60 * 60 * 24)
+        );
+      }
+    }
+
+    return {
+      date,
+      promisedQuantity,
+      actualQuantity,
+      difference,
+      status,
+      delayDays,
+    };
+  });
 
   return {
-    totalPlanned,
-    totalActual,
-    totalDifference,
-    averagePercentage,
-    materialCount: comparisonData.length,
+    supplierId,
+    supplierName,
+    comparisonData,
   };
 }
