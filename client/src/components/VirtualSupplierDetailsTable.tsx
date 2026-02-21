@@ -24,7 +24,7 @@ export function VirtualSupplierDetailsTable({ details }: VirtualSupplierDetailsT
   const virtualizer = useVirtualizer({
     count: details.length,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => 60, // 固定行高60px
+    estimateSize: () => 56, // 固定行高56px
     overscan: 5, // 预渲染5行
   });
 
@@ -70,19 +70,33 @@ export function VirtualSupplierDetailsTable({ details }: VirtualSupplierDetailsT
     return `${days}天`;
   };
 
+  // 固定列宽（单位：px）
+  const columnWidths = {
+    materialCode: 140,
+    materialName: 180,
+    promisedDate: 110,
+    promisedQuantity: 100,
+    actualDate: 110,
+    actualQuantity: 100,
+    delayDays: 100,
+    status: 110,
+  };
+
+  const totalWidth = Object.values(columnWidths).reduce((sum, width) => sum + width, 0);
+
   return (
     <div className="border rounded-lg overflow-hidden">
       {/* 表头 */}
-      <div className="bg-gray-50 border-b">
-        <div className="grid grid-cols-8 gap-4 px-4 py-3 text-sm font-medium text-gray-700">
-          <div>物料代码</div>
-          <div>物料名称</div>
-          <div>计划日期</div>
-          <div>计划数量</div>
-          <div>实际日期</div>
-          <div>实际数量</div>
-          <div>差异天数</div>
-          <div>状态</div>
+      <div className="bg-gray-50 border-b overflow-hidden">
+        <div className="flex text-sm font-medium text-gray-700" style={{ minWidth: `${totalWidth}px` }}>
+          <div className="px-4 py-3 border-r" style={{ width: `${columnWidths.materialCode}px` }}>物料代码</div>
+          <div className="px-4 py-3 border-r" style={{ width: `${columnWidths.materialName}px` }}>物料名称</div>
+          <div className="px-4 py-3 border-r" style={{ width: `${columnWidths.promisedDate}px` }}>计划日期</div>
+          <div className="px-4 py-3 border-r" style={{ width: `${columnWidths.promisedQuantity}px` }}>计划数量</div>
+          <div className="px-4 py-3 border-r" style={{ width: `${columnWidths.actualDate}px` }}>实际日期</div>
+          <div className="px-4 py-3 border-r" style={{ width: `${columnWidths.actualQuantity}px` }}>实际数量</div>
+          <div className="px-4 py-3 border-r" style={{ width: `${columnWidths.delayDays}px` }}>差异天数</div>
+          <div className="px-4 py-3" style={{ width: `${columnWidths.status}px` }}>状态</div>
         </div>
       </div>
 
@@ -104,33 +118,72 @@ export function VirtualSupplierDetailsTable({ details }: VirtualSupplierDetailsT
             return (
               <div
                 key={virtualRow.key}
-                className="grid grid-cols-8 gap-4 px-4 py-3 border-b hover:bg-gray-50 transition-colors"
+                className="flex border-b hover:bg-gray-50 transition-colors"
                 style={{
                   position: 'absolute',
                   top: 0,
                   left: 0,
                   width: '100%',
+                  minWidth: `${totalWidth}px`,
                   height: `${virtualRow.size}px`,
                   transform: `translateY(${virtualRow.start}px)`,
                 }}
               >
-                <div className="font-mono text-sm flex items-center">{detail.materialCode}</div>
-                <div className="flex items-center">{detail.materialName}</div>
-                <div className="flex items-center">{detail.promisedDate}</div>
-                <div className="flex items-center">{detail.promisedQuantity.toLocaleString()}</div>
-                <div className="flex items-center">{detail.actualDate || '-'}</div>
-                <div className="flex items-center">{detail.actualQuantity?.toLocaleString() || '-'}</div>
+                <div 
+                  className="px-4 py-3 font-mono text-sm flex items-center border-r truncate" 
+                  style={{ width: `${columnWidths.materialCode}px` }}
+                  title={detail.materialCode}
+                >
+                  {detail.materialCode}
+                </div>
+                <div 
+                  className="px-4 py-3 flex items-center border-r truncate" 
+                  style={{ width: `${columnWidths.materialName}px` }}
+                  title={detail.materialName}
+                >
+                  {detail.materialName}
+                </div>
+                <div 
+                  className="px-4 py-3 flex items-center border-r" 
+                  style={{ width: `${columnWidths.promisedDate}px` }}
+                >
+                  {detail.promisedDate}
+                </div>
+                <div 
+                  className="px-4 py-3 flex items-center border-r" 
+                  style={{ width: `${columnWidths.promisedQuantity}px` }}
+                >
+                  {detail.promisedQuantity.toLocaleString()}
+                </div>
+                <div 
+                  className="px-4 py-3 flex items-center border-r" 
+                  style={{ width: `${columnWidths.actualDate}px` }}
+                >
+                  {detail.actualDate || '-'}
+                </div>
+                <div 
+                  className="px-4 py-3 flex items-center border-r" 
+                  style={{ width: `${columnWidths.actualQuantity}px` }}
+                >
+                  {detail.actualQuantity?.toLocaleString() || '-'}
+                </div>
                 <div
-                  className={`flex items-center ${
+                  className={`px-4 py-3 flex items-center border-r ${
                     detail.delayDays === null ? '' :
                     detail.delayDays > 0 ? 'text-red-600 font-semibold' :
                     detail.delayDays < 0 ? 'text-blue-600 font-semibold' :
                     'text-green-600 font-semibold'
                   }`}
+                  style={{ width: `${columnWidths.delayDays}px` }}
                 >
                   {formatDelayDays(detail.delayDays)}
                 </div>
-                <div className="flex items-center">{getStatusBadge(detail.status)}</div>
+                <div 
+                  className="px-4 py-3 flex items-center" 
+                  style={{ width: `${columnWidths.status}px` }}
+                >
+                  {getStatusBadge(detail.status)}
+                </div>
               </div>
             );
           })}
