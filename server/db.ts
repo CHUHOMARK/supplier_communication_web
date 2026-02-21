@@ -2486,13 +2486,49 @@ export async function getSupplierDeliveryDetails(
     throw new Error('Material plan not found or access denied');
   }
   
-  // 2. 获取该计划中的所有物料明细
+  // 2. 通过supplierName查找supplierId
+  const supplierData = await db
+    .select({ id: suppliers.id })
+    .from(suppliers)
+    .where(
+      and(
+        eq(suppliers.userId, userId),
+        eq(suppliers.supplierName, supplierName)
+      )
+    )
+    .limit(1);
+  
+  if (supplierData.length === 0) {
+    throw new Error('Supplier not found');
+  }
+  
+  const supplierId = supplierData[0].id;
+  
+  // 3. 从material_supplier_mappings表获取该供应商负责的物料列表
+  const supplierMappings = await db
+    .select({ materialCode: materialSupplierMappings.materialCode })
+    .from(materialSupplierMappings)
+    .where(
+      and(
+        eq(materialSupplierMappings.planId, planId),
+        eq(materialSupplierMappings.supplierId, supplierId)
+      )
+    );
+  
+  const materialCodesSet = new Set(supplierMappings.map(m => m.materialCode));
+  
+  // 4. 获取该计划中该供应商负责的物料明细
   const materialItemsData = await db
     .select()
     .from(materialItems)
     .where(eq(materialItems.planId, planId));
+  
+  // 只保留该供应商负责的物料
+  const filteredMaterialItems = materialItemsData.filter(item => 
+    materialCodesSet.has(item.materialCode)
+  );
 
-  // 3. 获取该供应商的所有实际到货记录
+  // 5. 获取该供应商的所有实际到货记录
   const actualReceiptsList = await db
     .select()
     .from(actualReceipts)
@@ -2503,7 +2539,7 @@ export async function getSupplierDeliveryDetails(
       )
     );
 
-  // 4. 按物料代码分组实际到货记录
+  // 6. 按物料代码分组实际到货记录
   const receiptsByMaterial = new Map<string, ActualReceipt[]>();
   for (const receipt of actualReceiptsList) {
     if (!receiptsByMaterial.has(receipt.materialCode)) {
@@ -2512,7 +2548,7 @@ export async function getSupplierDeliveryDetails(
     receiptsByMaterial.get(receipt.materialCode)!.push(receipt);
   }
 
-  // 5. 对比每个物料的计划和实际
+  // 7. 对比每个物料的计划和实际
   const details: Array<{
     materialCode: string;
     materialName: string;
@@ -2524,7 +2560,7 @@ export async function getSupplierDeliveryDetails(
     status: 'on_time' | 'late' | 'early' | 'no_delivery';
   }> = [];
 
-  for (const materialItem of materialItemsData) {
+  for (const materialItem of filteredMaterialItems) {
     const dailySchedule = typeof materialItem.dailySchedule === 'string'
       ? JSON.parse(materialItem.dailySchedule)
       : materialItem.dailySchedule || {};
