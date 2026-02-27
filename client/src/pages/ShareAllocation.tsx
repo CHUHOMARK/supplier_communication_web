@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { trpc } from '@/lib/trpc';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -43,15 +43,20 @@ export default function ShareAllocation() {
     },
     { 
       enabled: !!selectedPlanId,
-      staleTime: 30000 
+      staleTime: 5 * 60 * 1000, // 5分钟
+      refetchOnWindowFocus: false, // 禁用窗口聚焦时自动刷新
     }
   );
 
   // 当获取到第一页数据时，自动加载所有其他页面
   const utils = trpc.useUtils();
+  const loadedPlanRef = useRef<number | null>(null);
   
   useEffect(() => {
     if (!firstPageData || !selectedPlanId) return;
+    
+    // 如果已经加载过该计划，则不重复加载
+    if (loadedPlanRef.current === selectedPlanId) return;
 
     const loadAllPages = async () => {
       setIsLoadingAllPages(true);
@@ -80,6 +85,9 @@ export default function ShareAllocation() {
           (m) => m.suppliers && Array.isArray(m.suppliers) && m.suppliers.length > 1
         );
         setAllMaterials(multiSupplierMaterials);
+        
+        // 标记该计划已加载
+        loadedPlanRef.current = selectedPlanId;
       } catch (err) {
         console.error('加载所有页面失败:', err);
       } finally {
@@ -96,6 +104,8 @@ export default function ShareAllocation() {
     setSelectedPlanId(planId);
     setAllMaterials([]);
     setTotalMaterials(0);
+    // 重置loadedPlanRef，允许加载新计划
+    loadedPlanRef.current = null;
   }, []);
 
   // 处理编辑份额
@@ -113,6 +123,8 @@ export default function ShareAllocation() {
   const handleDialogSuccess = useCallback(() => {
     setDialogOpen(false);
     setSelectedMaterial(null);
+    // 重置loadedPlanRef，允许重新加载数据
+    loadedPlanRef.current = null;
     refetchFirstPage();
   }, [refetchFirstPage]);
 
