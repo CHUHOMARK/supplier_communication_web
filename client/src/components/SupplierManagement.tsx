@@ -16,8 +16,6 @@ interface SupplierManagementProps {
 }
 
 export default function SupplierManagement({ onMappingComplete }: SupplierManagementProps) {
-  const [mappingFile, setMappingFile] = useState<File | null>(null);
-  const [uploading, setUploading] = useState(false);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [selectedPlanId, setSelectedPlanId] = useState<number>(0);
   const emailImportInputRef = useRef<HTMLInputElement>(null);
@@ -37,22 +35,6 @@ export default function SupplierManagement({ onMappingComplete }: SupplierManage
     selectedPlanId ? { planId: selectedPlanId } : undefined
   );
   const { data: mappings, isLoading: mappingsLoading } = trpc.mapping.list.useQuery();
-
-  const uploadMappingMutation = trpc.supplier.uploadMapping.useMutation({
-    onSuccess: (data) => {
-      toast.success(`映射上传成功！创建了 ${data.createdSuppliers} 个新供应商，${data.mappingCount} 条映射关系`);
-      setMappingFile(null);
-      utils.supplier.list.invalidate();
-      utils.mapping.list.invalidate();
-      onMappingComplete?.();
-    },
-    onError: (error) => {
-      toast.error(`上传失败：${error.message}`);
-    },
-    onSettled: () => {
-      setUploading(false);
-    },
-  });
 
   const createSupplierMutation = trpc.supplier.create.useMutation({
     onSuccess: () => {
@@ -106,38 +88,7 @@ export default function SupplierManagement({ onMappingComplete }: SupplierManage
     setEditingEmailValue("");
   };
 
-  const handleMappingFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = e.target.files?.[0];
-    if (selectedFile) {
-      if (!selectedFile.name.endsWith('.xlsx') && !selectedFile.name.endsWith('.xls')) {
-        toast.error('请上传Excel文件（.xlsx或.xls格式）');
-        return;
-      }
-      setMappingFile(selectedFile);
-    }
-  };
 
-  const handleUploadMapping = async () => {
-    if (!mappingFile) {
-      toast.error('请选择文件');
-      return;
-    }
-
-    setUploading(true);
-
-    try {
-      const reader = new FileReader();
-      reader.onload = async (e) => {
-        const base64 = e.target?.result as string;
-        const fileBase64 = base64.split(',')[1];
-        uploadMappingMutation.mutate({ planId: selectedPlanId, fileBase64 });
-      };
-      reader.readAsDataURL(mappingFile);
-    } catch (error) {
-      toast.error('文件读取失败');
-      setUploading(false);
-    }
-  };
 
   const handleCreateSupplier = () => {
     if (!newSupplier.supplierName.trim()) {
@@ -288,53 +239,6 @@ export default function SupplierManagement({ onMappingComplete }: SupplierManage
           }} 
         />
       )}
-
-      {/* 供应商映射表上传 */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <Upload className="h-5 w-5" />
-            <CardTitle>上传供应商映射表</CardTitle>
-          </div>
-          <CardDescription>
-            上传包含物料-供应商对应关系的Excel文件，系统将自动创建供应商并建立映射
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div>
-            <Label>选择Excel文件</Label>
-            <Input
-              type="file"
-              accept=".xlsx,.xls"
-              onChange={handleMappingFileChange}
-              className="mt-1"
-            />
-            {mappingFile && (
-              <p className="text-sm text-muted-foreground mt-1">
-                选择文件: {mappingFile.name}
-              </p>
-            )}
-          </div>
-
-          <Button
-            onClick={handleUploadMapping}
-            disabled={!mappingFile || uploading}
-            className="w-full"
-          >
-            {uploading ? (
-              <>
-                <AlertCircle className="mr-2 h-4 w-4 animate-spin" />
-                上传中...
-              </>
-            ) : (
-              <>
-                <Upload className="mr-2 h-4 w-4" />
-                上传映射表
-              </>
-            )}
-          </Button>
-        </CardContent>
-      </Card>
 
       {/* 供应商列表（紧凑表格） */}
       <Card>
