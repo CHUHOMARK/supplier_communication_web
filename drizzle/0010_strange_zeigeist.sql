@@ -1,0 +1,1 @@
+ALTER TABLE `supplier_confirmations` DROP CONSTRAINT `check_status_not_null`;

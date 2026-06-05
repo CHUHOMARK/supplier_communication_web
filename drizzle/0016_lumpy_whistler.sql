@@ -1,0 +1,1 @@
+ALTER TABLE `supplier_confirmations` ADD `dailySchedule` json;

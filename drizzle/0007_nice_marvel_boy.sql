@@ -1,0 +1,1 @@
+ALTER TABLE `supplier_confirmations` ADD CONSTRAINT `unique_plan_supplier` UNIQUE(`planId`,`supplierId`);
