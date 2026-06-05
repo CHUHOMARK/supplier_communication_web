@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Users, Plus, Upload, Download, CheckCircle, AlertCircle, Trash2, Key, Copy, Eye, EyeOff, Pencil } from "lucide-react";
+import { Users, Plus, Upload, Download, CheckCircle, AlertCircle, Trash2, Key, Copy, Eye, EyeOff, Pencil, RotateCcw } from "lucide-react";
 import PurchaseOrderImport from "@/components/PurchaseOrderImport";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
@@ -52,11 +52,14 @@ export default function SupplierManagement({ onMappingComplete }: SupplierManage
   const [editingSupplier, setEditingSupplier] = useState<{
     id: number;
     supplierName: string;
+    supplierCode: string;
     contactPerson: string;
     email: string;
     phone: string;
     notes: string;
+    defaultPin: string;
   } | null>(null);
+  const [showEditPin, setShowEditPin] = useState(false);
 
   const utils = trpc.useUtils();
   const { data: plans } = trpc.materialPlan.list.useQuery();
@@ -103,11 +106,14 @@ export default function SupplierManagement({ onMappingComplete }: SupplierManage
     setEditingSupplier({
       id: supplier.id,
       supplierName: supplier.supplierName || '',
+      supplierCode: supplier.supplierCode || '',
       contactPerson: supplier.contactPerson || '',
       email: supplier.email || '',
       phone: supplier.phone || '',
       notes: supplier.notes || '',
+      defaultPin: '',
     });
+    setShowEditPin(false);
     setEditDialogOpen(true);
   };
 
@@ -117,13 +123,23 @@ export default function SupplierManagement({ onMappingComplete }: SupplierManage
       toast.error('供应商名称不能为空');
       return;
     }
+    if (!editingSupplier.supplierCode.trim()) {
+      toast.error('供应商编号不能为空');
+      return;
+    }
+    if (editingSupplier.defaultPin && editingSupplier.defaultPin.length < 4) {
+      toast.error('PIN码至少4位');
+      return;
+    }
     updateSupplierMutation.mutate({
       id: editingSupplier.id,
       supplierName: editingSupplier.supplierName.trim(),
+      supplierCode: editingSupplier.supplierCode.trim(),
       contactPerson: editingSupplier.contactPerson.trim() || undefined,
       email: editingSupplier.email.trim() || undefined,
       phone: editingSupplier.phone.trim() || undefined,
       notes: editingSupplier.notes.trim() || undefined,
+      defaultPin: editingSupplier.defaultPin.trim() || undefined,
     });
   };
 
@@ -745,6 +761,47 @@ export default function SupplierManagement({ onMappingComplete }: SupplierManage
                   onChange={(e) => setEditingSupplier({ ...editingSupplier, supplierName: e.target.value })}
                   placeholder="请输入供应商名称"
                 />
+              </div>
+              <div>
+                <Label>供应商编号 *</Label>
+                <Input
+                  value={editingSupplier.supplierCode}
+                  onChange={(e) => setEditingSupplier({ ...editingSupplier, supplierCode: e.target.value })}
+                  placeholder="请输入供应商编号"
+                  className="font-mono"
+                />
+                <p className="text-xs text-muted-foreground mt-1">供应商登录时使用此编号</p>
+              </div>
+              <div>
+                <Label>默认PIN码 <span className="text-xs text-muted-foreground">（留空则不修改）</span></Label>
+                <div className="flex gap-2">
+                  <Input
+                    type={showEditPin ? "text" : "password"}
+                    value={editingSupplier.defaultPin}
+                    onChange={(e) => setEditingSupplier({ ...editingSupplier, defaultPin: e.target.value })}
+                    placeholder="至少4位"
+                    className="font-mono"
+                    maxLength={20}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setShowEditPin(!showEditPin)}
+                  >
+                    {showEditPin ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setEditingSupplier({ ...editingSupplier, defaultPin: '888888' })}
+                    title="重置为默认值 888888"
+                  >
+                    <RotateCcw className="h-4 w-4" />
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">供应商登录时使用此PIN码</p>
               </div>
               <div>
                 <Label>联系人</Label>

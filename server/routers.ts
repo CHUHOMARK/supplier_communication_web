@@ -330,13 +330,30 @@ export const appRouter = router({
       .input(z.object({
         id: z.number(),
         supplierName: z.string().optional(),
+        supplierCode: z.string().optional(),
         contactPerson: z.string().optional(),
         email: z.string().email().optional(),
         phone: z.string().optional(),
         notes: z.string().optional(),
+        defaultPin: z.string().min(4).max(20).optional(),
       }))
       .mutation(async ({ input }) => {
-        const { id, ...data } = input;
+        const { id, defaultPin, ...data } = input;
+        
+        // Check supplier code uniqueness if changing
+        if (data.supplierCode) {
+          const existing = await db.getSupplierByCode(data.supplierCode);
+          if (existing && existing.id !== id) {
+            throw new TRPCError({ code: 'BAD_REQUEST', message: '供应商编号已被使用' });
+          }
+        }
+        
+        // Hash PIN if provided
+        if (defaultPin) {
+          const bcrypt = await import('bcrypt');
+          data.defaultPin = await bcrypt.default.hash(defaultPin, 10);
+        }
+        
         await db.updateSupplier(id, data);
         return { success: true };
       }),
