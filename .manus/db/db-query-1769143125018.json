@@ -1,0 +1,13 @@
+{
+  "query": "SELECT COUNT(*) as mapping_count FROM material_supplier_mappings LIMIT 5;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway03.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2oD5Rpux9cjqHPq.05f21cb26eb8 --database ZuNBVd6CLssbosJUyd9j6x --execute SELECT COUNT(*) as mapping_count FROM material_supplier_mappings LIMIT 5;",
+  "rows": [
+    {
+      "mapping_count": "1178"
+    }
+  ],
+  "messages": [],
+  "stdout": "mapping_count\n1178\n",
+  "stderr": "",
+  "execution_time_ms": 1802
+}

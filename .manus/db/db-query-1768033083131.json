@@ -1,0 +1,20 @@
+{
+  "query": "SELECT id, supplierName, email FROM suppliers WHERE supplierName IN ('苏州斯塔克电子科技有限公司', '河南省鹏辉电源有限公司', '广州擎辉储能科技有限公司') ORDER BY supplierName;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway03.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2oD5Rpux9cjqHPq.05f21cb26eb8 --database ZuNBVd6CLssbosJUyd9j6x --execute SELECT id, supplierName, email FROM suppliers WHERE supplierName IN ('苏州斯塔克电子科技有限公司', '河南省鹏辉电源有限公司', '广州擎辉储能科技有限公司') ORDER BY supplierName;",
+  "rows": [
+    {
+      "id": "541",
+      "supplierName": "河南省鹏辉电源有限公司",
+      "email": "NULL"
+    },
+    {
+      "id": "534",
+      "supplierName": "苏州斯塔克电子科技有限公司",
+      "email": "NULL"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tsupplierName\temail\n541\t河南省鹏辉电源有限公司\tNULL\n534\t苏州斯塔克电子科技有限公司\tNULL\n",
+  "stderr": "",
+  "execution_time_ms": 1652
+}

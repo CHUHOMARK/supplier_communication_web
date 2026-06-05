@@ -1,0 +1,130 @@
+{
+  "query": "\nSELECT id, planId, materialCode, materialName FROM material_items LIMIT 20;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway03.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2oD5Rpux9cjqHPq.05f21cb26eb8 --database ZuNBVd6CLssbosJUyd9j6x --execute \nSELECT id, planId, materialCode, materialName FROM material_items LIMIT 20;\n",
+  "rows": [
+    {
+      "id": "60001",
+      "planId": "1",
+      "materialCode": "MAT001",
+      "materialName": "钢板"
+    },
+    {
+      "id": "60002",
+      "planId": "1",
+      "materialCode": "MAT002",
+      "materialName": "铝管"
+    },
+    {
+      "id": "60003",
+      "planId": "1",
+      "materialCode": "MAT003",
+      "materialName": "螺钉"
+    },
+    {
+      "id": "210001",
+      "planId": "180005",
+      "materialCode": "D1100153",
+      "materialName": "135NP"
+    },
+    {
+      "id": "210002",
+      "planId": "180005",
+      "materialCode": "A1300003",
+      "materialName": "鹏辉电芯"
+    },
+    {
+      "id": "210003",
+      "planId": "180005",
+      "materialCode": "A1501125",
+      "materialName": "正极柱(大0.1)"
+    },
+    {
+      "id": "210004",
+      "planId": "180005",
+      "materialCode": "A1501123",
+      "materialName": "负极柱(大0.1)"
+    },
+    {
+      "id": "210005",
+      "planId": "180005",
+      "materialCode": "A1502536",
+      "materialName": "Y2417501-前端板-A9"
+    },
+    {
+      "id": "210006",
+      "planId": "180005",
+      "materialCode": "A1502451",
+      "materialName": "Y2417501-后端板-A6"
+    },
+    {
+      "id": "210007",
+      "planId": "180005",
+      "materialCode": "A1502259",
+      "materialName": "Y2417501-侧板1(SQ)-A1"
+    },
+    {
+      "id": "210008",
+      "planId": "180005",
+      "materialCode": "A1502260",
+      "materialName": "Y2417501-侧板2(SQ)-A1"
+    },
+    {
+      "id": "210009",
+      "planId": "180005",
+      "materialCode": "A1400147",
+      "materialName": "Y2417501-中塑达-上盖左负右正(不含插件孔)-A0"
+    },
+    {
+      "id": "210010",
+      "planId": "180005",
+      "materialCode": "A1400149",
+      "materialName": "Y2417501-中塑达-上盖左正右负(不含插件孔)-A0"
+    },
+    {
+      "id": "210011",
+      "planId": "180005",
+      "materialCode": "A1400152",
+      "materialName": "Y2417501-中塑达-箱体(含插件孔)-A0"
+    },
+    {
+      "id": "210012",
+      "planId": "180005",
+      "materialCode": "A1400151",
+      "materialName": "Y2417501-中塑达-箱体(不含插件孔)-A0"
+    },
+    {
+      "id": "210013",
+      "planId": "180005",
+      "materialCode": "A1400153",
+      "materialName": "Y2417501-中塑达-极柱支架-A0"
+    },
+    {
+      "id": "210014",
+      "planId": "180005",
+      "materialCode": "A1502541",
+      "materialName": "175左正右负-CCS"
+    },
+    {
+      "id": "210015",
+      "planId": "180005",
+      "materialCode": "A1502537",
+      "materialName": "Y2417501-CCS总成(左负右正)-YQ-A4"
+    },
+    {
+      "id": "210016",
+      "planId": "180005",
+      "materialCode": "A1500910",
+      "materialName": "Y2417501-P负铝排(左负右正)-A4"
+    },
+    {
+      "id": "210017",
+      "planId": "180005",
+      "materialCode": "A1500911",
+      "materialName": "Y2417501-P正铝排(左负右正)-A3"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tplanId\tmaterialCode\tmaterialName\n60001\t1\tMAT001\t钢板\n60002\t1\tMAT002\t铝管\n60003\t1\tMAT003\t螺钉\n210001\t180005\tD1100153\t135NP\n210002\t180005\tA1300003\t鹏辉电芯\n210003\t180005\tA1501125\t正极柱(大0.1)\n210004\t180005\tA1501123\t负极柱(大0.1)\n210005\t180005\tA1502536\tY2417501-前端板-A9\n210006\t180005\tA1502451\tY2417501-后端板-A6\n210007\t180005\tA1502259\tY2417501-侧板1(SQ)-A1\n210008\t180005\tA1502260\tY2417501-侧板2(SQ)-A1\n210009\t180005\tA1400147\tY2417501-中塑达-上盖左负右正(不含插件孔)-A0\n210010\t180005\tA1400149\tY2417501-中塑达-上盖左正右负(不含插件孔)-A0\n210011\t180005\tA1400152\tY2417501-中塑达-箱体(含插件孔)-A0\n210012\t180005\tA1400151\tY2417501-中塑达-箱体(不含插件孔)-A0\n210013\t180005\tA1400153\tY2417501-中塑达-极柱支架-A0\n210014\t180005\tA1502541\t175左正右负-CCS\n210015\t180005\tA1502537\tY2417501-CCS总成(左负右正)-YQ-A4\n210016\t180005\tA1500910\tY2417501-P负铝排(左负右正)-A4\n210017\t180005\tA1500911\tY2417501-P正铝排(左负右正)-A3\n",
+  "stderr": "",
+  "execution_time_ms": 1503
+}

@@ -1,0 +1,131 @@
+{
+  "query": "SELECT \n  id,\n  confirmToken,\n  status,\n  supplierNotes,\n  confirmedAt,\n  expiresAt,\n  createdAt,\n  supplierId,\n  planId\nFROM supplier_confirmations\nORDER BY createdAt DESC\nLIMIT 20;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway03.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2oD5Rpux9cjqHPq.05f21cb26eb8 --database ZuNBVd6CLssbosJUyd9j6x --execute SELECT \n  id,\n  confirmToken,\n  status,\n  supplierNotes,\n  confirmedAt,\n  expiresAt,\n  createdAt,\n  supplierId,\n  planId\nFROM supplier_confirmations\nORDER BY createdAt DESC\nLIMIT 20;",
+  "rows": [
+    {
+      "id": "11",
+      "confirmToken": "DJccppM6oUkUMU5K5fQ5ff_cOqvib90v",
+      "status": "pending",
+      "supplierNotes": "NULL",
+      "confirmedAt": "NULL",
+      "expiresAt": "2026-02-09 09:37:55",
+      "createdAt": "2026-01-10 09:37:54",
+      "supplierId": "553",
+      "planId": "5"
+    },
+    {
+      "id": "10",
+      "confirmToken": "pC6ECABe3KIZu9tsVEGwYScIGzq553jb",
+      "status": "partial",
+      "supplierNotes": "测试回复：大部分物料可以按时交付，A1300003电芯需要延迟3天交货。",
+      "confirmedAt": "2026-01-10 09:33:24",
+      "expiresAt": "2026-02-09 09:26:40",
+      "createdAt": "2026-01-10 09:26:40",
+      "supplierId": "553",
+      "planId": "5"
+    },
+    {
+      "id": "9",
+      "confirmToken": "XD4saJJt-7etKcR6yBwOjHpG0UzjHrsd",
+      "status": "pending",
+      "supplierNotes": "NULL",
+      "confirmedAt": "NULL",
+      "expiresAt": "2026-02-09 09:18:00",
+      "createdAt": "2026-01-10 09:18:00",
+      "supplierId": "553",
+      "planId": "5"
+    },
+    {
+      "id": "8",
+      "confirmToken": "3ryjrTU-ndKIwcL0mgiZCdPNgI5E2iVn",
+      "status": "pending",
+      "supplierNotes": "NULL",
+      "confirmedAt": "NULL",
+      "expiresAt": "2026-02-09 09:06:41",
+      "createdAt": "2026-01-10 09:06:40",
+      "supplierId": "553",
+      "planId": "5"
+    },
+    {
+      "id": "7",
+      "confirmToken": "cXpWzPNL26POLfK6yog8DQf8_nvUePxq",
+      "status": "pending",
+      "supplierNotes": "NULL",
+      "confirmedAt": "NULL",
+      "expiresAt": "2026-02-09 09:06:26",
+      "createdAt": "2026-01-10 09:06:26",
+      "supplierId": "553",
+      "planId": "5"
+    },
+    {
+      "id": "6",
+      "confirmToken": "eNHv5TX7WSvBaqDSwMq2nbF6xZ2-x5_F",
+      "status": "pending",
+      "supplierNotes": "NULL",
+      "confirmedAt": "NULL",
+      "expiresAt": "2026-02-09 08:58:10",
+      "createdAt": "2026-01-10 08:58:10",
+      "supplierId": "553",
+      "planId": "5"
+    },
+    {
+      "id": "5",
+      "confirmToken": "cPaKlNDaZd7YOewIMBBQqCGkRHGBoks2",
+      "status": "pending",
+      "supplierNotes": "NULL",
+      "confirmedAt": "NULL",
+      "expiresAt": "2026-02-09 08:57:55",
+      "createdAt": "2026-01-10 08:57:55",
+      "supplierId": "553",
+      "planId": "5"
+    },
+    {
+      "id": "4",
+      "confirmToken": "PNiYGX78kVkevfnk1X7yXmsW5F-iUgz3",
+      "status": "pending",
+      "supplierNotes": "NULL",
+      "confirmedAt": "NULL",
+      "expiresAt": "2026-02-09 08:51:49",
+      "createdAt": "2026-01-10 08:51:49",
+      "supplierId": "553",
+      "planId": "5"
+    },
+    {
+      "id": "3",
+      "confirmToken": "Ka3NYyoUDcl9zibV60TepLhWZA9prFlt",
+      "status": "pending",
+      "supplierNotes": "NULL",
+      "confirmedAt": "NULL",
+      "expiresAt": "2026-02-09 08:45:44",
+      "createdAt": "2026-01-10 08:45:44",
+      "supplierId": "553",
+      "planId": "5"
+    },
+    {
+      "id": "2",
+      "confirmToken": "Ia4CQQVYOUmEwQrCoHaLXaAJkX-NdJVb",
+      "status": "pending",
+      "supplierNotes": "NULL",
+      "confirmedAt": "NULL",
+      "expiresAt": "2026-02-09 08:44:14",
+      "createdAt": "2026-01-10 08:44:13",
+      "supplierId": "534",
+      "planId": "5"
+    },
+    {
+      "id": "1",
+      "confirmToken": "nGzW6QnKAbDa-ZDgWtB3p3JTK4ZijUIc",
+      "status": "pending",
+      "supplierNotes": "NULL",
+      "confirmedAt": "NULL",
+      "expiresAt": "2026-02-09 08:32:06",
+      "createdAt": "2026-01-10 08:32:06",
+      "supplierId": "553",
+      "planId": "5"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tconfirmToken\tstatus\tsupplierNotes\tconfirmedAt\texpiresAt\tcreatedAt\tsupplierId\tplanId\n11\tDJccppM6oUkUMU5K5fQ5ff_cOqvib90v\tpending\tNULL\tNULL\t2026-02-09 09:37:55\t2026-01-10 09:37:54\t553\t5\n10\tpC6ECABe3KIZu9tsVEGwYScIGzq553jb\tpartial\t测试回复：大部分物料可以按时交付，A1300003电芯需要延迟3天交货。\t2026-01-10 09:33:24\t2026-02-09 09:26:40\t2026-01-10 09:26:40\t553\t5\n9\tXD4saJJt-7etKcR6yBwOjHpG0UzjHrsd\tpending\tNULL\tNULL\t2026-02-09 09:18:00\t2026-01-10 09:18:00\t553\t5\n8\t3ryjrTU-ndKIwcL0mgiZCdPNgI5E2iVn\tpending\tNULL\tNULL\t2026-02-09 09:06:41\t2026-01-10 09:06:40\t553\t5\n7\tcXpWzPNL26POLfK6yog8DQf8_nvUePxq\tpending\tNULL\tNULL\t2026-02-09 09:06:26\t2026-01-10 09:06:26\t553\t5\n6\teNHv5TX7WSvBaqDSwMq2nbF6xZ2-x5_F\tpending\tNULL\tNULL\t2026-02-09 08:58:10\t2026-01-10 08:58:10\t553\t5\n5\tcPaKlNDaZd7YOewIMBBQqCGkRHGBoks2\tpending\tNULL\tNULL\t2026-02-09 08:57:55\t2026-01-10 08:57:55\t553\t5\n4\tPNiYGX78kVkevfnk1X7yXmsW5F-iUgz3\tpending\tNULL\tNULL\t2026-02-09 08:51:49\t2026-01-10 08:51:49\t553\t5\n3\tKa3NYyoUDcl9zibV60TepLhWZA9prFlt\tpending\tNULL\tNULL\t2026-02-09 08:45:44\t2026-01-10 08:45:44\t553\t5\n2\tIa4CQQVYOUmEwQrCoHaLXaAJkX-NdJVb\tpending\tNULL\tNULL\t2026-02-09 08:44:14\t2026-01-10 08:44:13\t534\t5\n1\tnGzW6QnKAbDa-ZDgWtB3p3JTK4ZijUIc\tpending\tNULL\tNULL\t2026-02-09 08:32:06\t2026-01-10 08:32:06\t553\t5\n",
+  "stderr": "",
+  "execution_time_ms": 1522
+}

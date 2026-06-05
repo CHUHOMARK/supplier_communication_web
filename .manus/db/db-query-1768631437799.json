@@ -1,0 +1,25 @@
+{
+  "query": "SELECT planId, supplierId, COUNT(*) as count FROM supplier_confirmations GROUP BY planId, supplierId HAVING COUNT(*) > 1;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway03.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2oD5Rpux9cjqHPq.05f21cb26eb8 --database ZuNBVd6CLssbosJUyd9j6x --execute SELECT planId, supplierId, COUNT(*) as count FROM supplier_confirmations GROUP BY planId, supplierId HAVING COUNT(*) > 1;",
+  "rows": [
+    {
+      "planId": "5",
+      "supplierId": "534",
+      "count": "3"
+    },
+    {
+      "planId": "5",
+      "supplierId": "553",
+      "count": "23"
+    },
+    {
+      "planId": "30001",
+      "supplierId": "30047",
+      "count": "10"
+    }
+  ],
+  "messages": [],
+  "stdout": "planId\tsupplierId\tcount\n5\t534\t3\n5\t553\t23\n30001\t30047\t10\n",
+  "stderr": "",
+  "execution_time_ms": 1844
+}

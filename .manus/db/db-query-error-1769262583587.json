@@ -1,0 +1,8 @@
+{
+  "query": "INSERT INTO material_items (planId, materialCode, materialName, shortage, createdAt, updatedAt) VALUES\n(300001, 'MAT001', '物料001', 100, NOW(), NOW()),\n(300001, 'MAT002', '物料002', 200, NOW(), NOW()),\n(300001, 'MAT003', '物料003', 150, NOW(), NOW()),\n(300001, 'MAT004', '物料004', 300, NOW(), NOW()),\n(300001, 'MAT005', '物料005', 250, NOW(), NOW());",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway03.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2oD5Rpux9cjqHPq.05f21cb26eb8 --database ZuNBVd6CLssbosJUyd9j6x --execute INSERT INTO material_items (planId, materialCode, materialName, shortage, createdAt, updatedAt) VALUES\n(300001, 'MAT001', '物料001', 100, NOW(), NOW()),\n(300001, 'MAT002', '物料002', 200, NOW(), NOW()),\n(300001, 'MAT003', '物料003', 150, NOW(), NOW()),\n(300001, 'MAT004', '物料004', 300, NOW(), NOW()),\n(300001, 'MAT005', '物料005', 250, NOW(), NOW());",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1054 (42S22) at line 1: Unknown column 'createdAt' in 'field list'"
+  ]
+}

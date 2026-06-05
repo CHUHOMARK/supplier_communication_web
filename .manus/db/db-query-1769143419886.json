@@ -1,0 +1,15 @@
+{
+  "query": "SELECT mp.id, mp.fileName, COUNT(mi.id) as item_count FROM material_plans mp LEFT JOIN material_items mi ON mp.id = mi.planId GROUP BY mp.id, mp.fileName ORDER BY mp.id;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway03.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2oD5Rpux9cjqHPq.05f21cb26eb8 --database ZuNBVd6CLssbosJUyd9j6x --execute SELECT mp.id, mp.fileName, COUNT(mi.id) as item_count FROM material_plans mp LEFT JOIN material_items mi ON mp.id = mi.planId GROUP BY mp.id, mp.fileName ORDER BY mp.id;",
+  "rows": [
+    {
+      "id": "300001",
+      "fileName": "1月5日-2月13日.xlsx",
+      "item_count": "178"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tfileName\titem_count\n300001\t1月5日-2月13日.xlsx\t178\n",
+  "stderr": "",
+  "execution_time_ms": 1500
+}

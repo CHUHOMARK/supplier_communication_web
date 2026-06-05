@@ -1,0 +1,8 @@
+{
+  "query": "SELECT sc.id, sc.confirm_token, sc.status, sc.expires_at, s.name as supplier_name, mp.filename \nFROM supplier_confirmations sc \nLEFT JOIN suppliers s ON sc.supplier_id = s.id \nLEFT JOIN material_plans mp ON sc.plan_id = mp.id \nORDER BY sc.created_at DESC \nLIMIT 5;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway03.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2oD5Rpux9cjqHPq.05f21cb26eb8 --database ZuNBVd6CLssbosJUyd9j6x --execute SELECT sc.id, sc.confirm_token, sc.status, sc.expires_at, s.name as supplier_name, mp.filename \nFROM supplier_confirmations sc \nLEFT JOIN suppliers s ON sc.supplier_id = s.id \nLEFT JOIN material_plans mp ON sc.plan_id = mp.id \nORDER BY sc.created_at DESC \nLIMIT 5;",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1054 (42S22) at line 1: Unknown column 'sc.supplier_id' in 'on clause'"
+  ]
+}

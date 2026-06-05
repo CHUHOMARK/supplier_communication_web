@@ -1,0 +1,52 @@
+{
+  "query": "\nSELECT userId, materialCode, supplierId, sharePercentage FROM material_supplier_mappings;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway03.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2oD5Rpux9cjqHPq.05f21cb26eb8 --database ZuNBVd6CLssbosJUyd9j6x --execute \nSELECT userId, materialCode, supplierId, sharePercentage FROM material_supplier_mappings;\n",
+  "rows": [
+    {
+      "userId": "1",
+      "materialCode": "MAT001",
+      "supplierId": "180029",
+      "sharePercentage": "60.00"
+    },
+    {
+      "userId": "1",
+      "materialCode": "MAT001",
+      "supplierId": "180030",
+      "sharePercentage": "40.00"
+    },
+    {
+      "userId": "1",
+      "materialCode": "MAT002",
+      "supplierId": "180029",
+      "sharePercentage": "50.00"
+    },
+    {
+      "userId": "1",
+      "materialCode": "MAT002",
+      "supplierId": "180030",
+      "sharePercentage": "50.00"
+    },
+    {
+      "userId": "1",
+      "materialCode": "MAT003",
+      "supplierId": "180029",
+      "sharePercentage": "40.00"
+    },
+    {
+      "userId": "1",
+      "materialCode": "MAT003",
+      "supplierId": "180030",
+      "sharePercentage": "35.00"
+    },
+    {
+      "userId": "1",
+      "materialCode": "MAT003",
+      "supplierId": "180031",
+      "sharePercentage": "25.00"
+    }
+  ],
+  "messages": [],
+  "stdout": "userId\tmaterialCode\tsupplierId\tsharePercentage\n1\tMAT001\t180029\t60.00\n1\tMAT001\t180030\t40.00\n1\tMAT002\t180029\t50.00\n1\tMAT002\t180030\t50.00\n1\tMAT003\t180029\t40.00\n1\tMAT003\t180030\t35.00\n1\tMAT003\t180031\t25.00\n",
+  "stderr": "",
+  "execution_time_ms": 1545
+}

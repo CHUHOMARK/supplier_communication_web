@@ -1,0 +1,16 @@
+{
+  "query": "SELECT id, confirmToken, planId, supplierId FROM supplier_confirmations LIMIT 1;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway03.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2oD5Rpux9cjqHPq.05f21cb26eb8 --database ZuNBVd6CLssbosJUyd9j6x --execute SELECT id, confirmToken, planId, supplierId FROM supplier_confirmations LIMIT 1;",
+  "rows": [
+    {
+      "id": "270003",
+      "confirmToken": "1ExGVSTdk4Nox_XfUcTujNUWFmvPZ5v8",
+      "planId": "360001",
+      "supplierId": "360048"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tconfirmToken\tplanId\tsupplierId\n270003\t1ExGVSTdk4Nox_XfUcTujNUWFmvPZ5v8\t360001\t360048\n",
+  "stderr": "",
+  "execution_time_ms": 1558
+}

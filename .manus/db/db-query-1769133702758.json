@@ -1,0 +1,18 @@
+{
+  "query": "SELECT supplierName, SUM(undeliveredQuantity) as total_undelivered FROM purchase_orders WHERE materialCode = 'A1300003' GROUP BY supplierName;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway03.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2oD5Rpux9cjqHPq.05f21cb26eb8 --database ZuNBVd6CLssbosJUyd9j6x --execute SELECT supplierName, SUM(undeliveredQuantity) as total_undelivered FROM purchase_orders WHERE materialCode = 'A1300003' GROUP BY supplierName;",
+  "rows": [
+    {
+      "supplierName": "广州鹏辉储能科技有限公司",
+      "total_undelivered": "46822"
+    },
+    {
+      "supplierName": "河南省鹏辉电源有限公司",
+      "total_undelivered": "3528"
+    }
+  ],
+  "messages": [],
+  "stdout": "supplierName\ttotal_undelivered\n广州鹏辉储能科技有限公司\t46822\n河南省鹏辉电源有限公司\t3528\n",
+  "stderr": "",
+  "execution_time_ms": 1544
+}

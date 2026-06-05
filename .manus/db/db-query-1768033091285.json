@@ -1,0 +1,9 @@
+{
+  "query": "UPDATE suppliers SET email = 'suzhouskd@example.com' WHERE supplierName = '苏州斯塔克电子科技有限公司';\nUPDATE suppliers SET email = 'henanpenghui@example.com' WHERE supplierName = '河南省鹏辉电源有限公司';\nUPDATE suppliers SET email = 'guangzhouqinghui@example.com' WHERE supplierName = '广州擎辉储能科技有限公司';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway03.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2oD5Rpux9cjqHPq.05f21cb26eb8 --database ZuNBVd6CLssbosJUyd9j6x --execute UPDATE suppliers SET email = 'suzhouskd@example.com' WHERE supplierName = '苏州斯塔克电子科技有限公司';\nUPDATE suppliers SET email = 'henanpenghui@example.com' WHERE supplierName = '河南省鹏辉电源有限公司';\nUPDATE suppliers SET email = 'guangzhouqinghui@example.com' WHERE supplierName = '广州擎辉储能科技有限公司';",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 1927
+}

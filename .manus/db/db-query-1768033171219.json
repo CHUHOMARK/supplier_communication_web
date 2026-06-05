@@ -1,0 +1,45 @@
+{
+  "query": "SELECT id, supplierName, email FROM suppliers WHERE supplierName LIKE '%斯%' ORDER BY supplierName;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway03.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2oD5Rpux9cjqHPq.05f21cb26eb8 --database ZuNBVd6CLssbosJUyd9j6x --execute SELECT id, supplierName, email FROM suppliers WHERE supplierName LIKE '%斯%' ORDER BY supplierName;",
+  "rows": [
+    {
+      "id": "573",
+      "supplierName": "昆山奥斯丁五金有限公司",
+      "email": "NULL"
+    },
+    {
+      "id": "588",
+      "supplierName": "昆山市玉山镇炫明斯五金商行",
+      "email": "NULL"
+    },
+    {
+      "id": "623",
+      "supplierName": "温州市艾美斯克智能设备有限公司",
+      "email": "NULL"
+    },
+    {
+      "id": "616",
+      "supplierName": "苏州帕斯克包装材料有限公司",
+      "email": "NULL"
+    },
+    {
+      "id": "517",
+      "supplierName": "苏州摩斯泰电子有限公司",
+      "email": "NULL"
+    },
+    {
+      "id": "534",
+      "supplierName": "苏州斯塔克电子科技有限公司",
+      "email": "suzhouskd@example.com"
+    },
+    {
+      "id": "607",
+      "supplierName": "赛柯赛斯新能源科技（苏州）有限公司",
+      "email": "NULL"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tsupplierName\temail\n573\t昆山奥斯丁五金有限公司\tNULL\n588\t昆山市玉山镇炫明斯五金商行\tNULL\n623\t温州市艾美斯克智能设备有限公司\tNULL\n616\t苏州帕斯克包装材料有限公司\tNULL\n517\t苏州摩斯泰电子有限公司\tNULL\n534\t苏州斯塔克电子科技有限公司\tsuzhouskd@example.com\n607\t赛柯赛斯新能源科技（苏州）有限公司\tNULL\n",
+  "stderr": "",
+  "execution_time_ms": 1516
+}

@@ -1,0 +1,70 @@
+{
+  "query": "SELECT DISTINCT supplierName FROM actual_receipts ORDER BY supplierName LIMIT 20;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway03.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2oD5Rpux9cjqHPq.05f21cb26eb8 --database ZuNBVd6CLssbosJUyd9j6x --execute SELECT DISTINCT supplierName FROM actual_receipts ORDER BY supplierName LIMIT 20;",
+  "rows": [
+    {
+      "supplierName": "NULL"
+    },
+    {
+      "supplierName": "上海佳丰电子科技有限公司"
+    },
+    {
+      "supplierName": "上海创晶电子有限公司"
+    },
+    {
+      "supplierName": "上海创萃电子有限公司"
+    },
+    {
+      "supplierName": "上海力效智能科技有限公司"
+    },
+    {
+      "supplierName": "上海孜尚物联网科技有限公司"
+    },
+    {
+      "supplierName": "上海安驰电子有限公司"
+    },
+    {
+      "supplierName": "上海岑彭电子科技有限公司"
+    },
+    {
+      "supplierName": "上海桓恒电子科技有限公司"
+    },
+    {
+      "supplierName": "上海正勤电子有限公司"
+    },
+    {
+      "supplierName": "上海琪美棋包装科技有限公司"
+    },
+    {
+      "supplierName": "上海连岛电子科技有限公司"
+    },
+    {
+      "supplierName": "东莞市万联电子有限公司"
+    },
+    {
+      "supplierName": "东莞市中汇瑞德电子股份有限公司"
+    },
+    {
+      "supplierName": "东莞市华社电子科技有限公司"
+    },
+    {
+      "supplierName": "东莞市德尔创电子有限公司"
+    },
+    {
+      "supplierName": "东莞市特联电子有限公司"
+    },
+    {
+      "supplierName": "中国电信股份有限公司苏州分公司"
+    },
+    {
+      "supplierName": "云汉芯城（上海）电子科技有限公司"
+    },
+    {
+      "supplierName": "供应商A"
+    }
+  ],
+  "messages": [],
+  "stdout": "supplierName\nNULL\n上海佳丰电子科技有限公司\n上海创晶电子有限公司\n上海创萃电子有限公司\n上海力效智能科技有限公司\n上海孜尚物联网科技有限公司\n上海安驰电子有限公司\n上海岑彭电子科技有限公司\n上海桓恒电子科技有限公司\n上海正勤电子有限公司\n上海琪美棋包装科技有限公司\n上海连岛电子科技有限公司\n东莞市万联电子有限公司\n东莞市中汇瑞德电子股份有限公司\n东莞市华社电子科技有限公司\n东莞市德尔创电子有限公司\n东莞市特联电子有限公司\n中国电信股份有限公司苏州分公司\n云汉芯城（上海）电子科技有限公司\n供应商A\n",
+  "stderr": "",
+  "execution_time_ms": 1548
+}

@@ -1,0 +1,106 @@
+{
+  "query": "\nSELECT id, userId, fileName, planStartDate, planEndDate FROM material_plans LIMIT 5;\nSELECT id, planId, materialCode, materialName FROM material_items LIMIT 10;\nSELECT id, userId, materialCode, supplierId, sharePercentage FROM material_supplier_mappings LIMIT 10;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway03.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2oD5Rpux9cjqHPq.05f21cb26eb8 --database ZuNBVd6CLssbosJUyd9j6x --execute \nSELECT id, userId, fileName, planStartDate, planEndDate FROM material_plans LIMIT 5;\nSELECT id, planId, materialCode, materialName FROM material_items LIMIT 10;\nSELECT id, userId, materialCode, supplierId, sharePercentage FROM material_supplier_mappings LIMIT 10;\n",
+  "rows": [
+    {
+      "id": "180005",
+      "userId": "1",
+      "fileName": "1月5日-2月13日.xlsx",
+      "planStartDate": "2026-01-05",
+      "planEndDate": "2026-02-13"
+    },
+    {
+      "id": "id",
+      "userId": "userId",
+      "fileName": "materialCode",
+      "planStartDate": "supplierId",
+      "planEndDate": "sharePercentage"
+    },
+    {
+      "id": "180061",
+      "userId": "1",
+      "fileName": "A0100001",
+      "planStartDate": "180029",
+      "planEndDate": "100.00"
+    },
+    {
+      "id": "180062",
+      "userId": "1",
+      "fileName": "A0100038",
+      "planStartDate": "180029",
+      "planEndDate": "100.00"
+    },
+    {
+      "id": "180063",
+      "userId": "1",
+      "fileName": "A0100046",
+      "planStartDate": "180029",
+      "planEndDate": "100.00"
+    },
+    {
+      "id": "180064",
+      "userId": "1",
+      "fileName": "A0100062",
+      "planStartDate": "180029",
+      "planEndDate": "100.00"
+    },
+    {
+      "id": "180065",
+      "userId": "1",
+      "fileName": "A0100136",
+      "planStartDate": "180029",
+      "planEndDate": "100.00"
+    },
+    {
+      "id": "180066",
+      "userId": "1",
+      "fileName": "A0100138",
+      "planStartDate": "180029",
+      "planEndDate": "100.00"
+    },
+    {
+      "id": "180067",
+      "userId": "1",
+      "fileName": "A0100169",
+      "planStartDate": "180029",
+      "planEndDate": "100.00"
+    },
+    {
+      "id": "180068",
+      "userId": "1",
+      "fileName": "A0100171",
+      "planStartDate": "180029",
+      "planEndDate": "100.00"
+    },
+    {
+      "id": "180069",
+      "userId": "1",
+      "fileName": "A0100172",
+      "planStartDate": "180029",
+      "planEndDate": "100.00"
+    },
+    {
+      "id": "180070",
+      "userId": "1",
+      "fileName": "A0100173",
+      "planStartDate": "180029",
+      "planEndDate": "100.00"
+    }
+  ],
+  "messages": [
+    "id\tplanId\tmaterialCode\tmaterialName",
+    "60001\t1\tMAT001\t钢板",
+    "60002\t1\tMAT002\t铝管",
+    "60003\t1\tMAT003\t螺钉",
+    "210001\t180005\tD1100153\t135NP",
+    "210002\t180005\tA1300003\t鹏辉电芯",
+    "210003\t180005\tA1501125\t正极柱(大0.1)",
+    "210004\t180005\tA1501123\t负极柱(大0.1)",
+    "210005\t180005\tA1502536\tY2417501-前端板-A9",
+    "210006\t180005\tA1502451\tY2417501-后端板-A6",
+    "210007\t180005\tA1502259\tY2417501-侧板1(SQ)-A1"
+  ],
+  "stdout": "id\tuserId\tfileName\tplanStartDate\tplanEndDate\n180005\t1\t1月5日-2月13日.xlsx\t2026-01-05\t2026-02-13\nid\tplanId\tmaterialCode\tmaterialName\n60001\t1\tMAT001\t钢板\n60002\t1\tMAT002\t铝管\n60003\t1\tMAT003\t螺钉\n210001\t180005\tD1100153\t135NP\n210002\t180005\tA1300003\t鹏辉电芯\n210003\t180005\tA1501125\t正极柱(大0.1)\n210004\t180005\tA1501123\t负极柱(大0.1)\n210005\t180005\tA1502536\tY2417501-前端板-A9\n210006\t180005\tA1502451\tY2417501-后端板-A6\n210007\t180005\tA1502259\tY2417501-侧板1(SQ)-A1\nid\tuserId\tmaterialCode\tsupplierId\tsharePercentage\n180061\t1\tA0100001\t180029\t100.00\n180062\t1\tA0100038\t180029\t100.00\n180063\t1\tA0100046\t180029\t100.00\n180064\t1\tA0100062\t180029\t100.00\n180065\t1\tA0100136\t180029\t100.00\n180066\t1\tA0100138\t180029\t100.00\n180067\t1\tA0100169\t180029\t100.00\n180068\t1\tA0100171\t180029\t100.00\n180069\t1\tA0100172\t180029\t100.00\n180070\t1\tA0100173\t180029\t100.00\n",
+  "stderr": "",
+  "execution_time_ms": 1947
+}

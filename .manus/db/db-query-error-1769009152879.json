@@ -1,0 +1,8 @@
+{
+  "query": "\nSELECT \n  mp.id as planId,\n  mp.name as planName,\n  COUNT(DISTINCT mi.id) as materialCount,\n  COUNT(DISTINCT msm.id) as mappingCount\nFROM material_plans mp\nLEFT JOIN material_items mi ON mp.id = mi.planId\nLEFT JOIN material_supplier_mappings msm ON mi.materialCode = msm.materialCode\nGROUP BY mp.id, mp.name\nORDER BY mp.id;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway03.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2oD5Rpux9cjqHPq.05f21cb26eb8 --database ZuNBVd6CLssbosJUyd9j6x --execute \nSELECT \n  mp.id as planId,\n  mp.name as planName,\n  COUNT(DISTINCT mi.id) as materialCount,\n  COUNT(DISTINCT msm.id) as mappingCount\nFROM material_plans mp\nLEFT JOIN material_items mi ON mp.id = mi.planId\nLEFT JOIN material_supplier_mappings msm ON mi.materialCode = msm.materialCode\nGROUP BY mp.id, mp.name\nORDER BY mp.id;\n",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1054 (42S22) at line 2: Unknown column 'mp.name' in 'group statement'"
+  ]
+}

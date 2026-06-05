@@ -1,0 +1,21 @@
+{
+  "query": "\n-- 查询物料计划\nSELECT id, fileName, planStartDate, planEndDate FROM material_plans LIMIT 5;\n\n-- 查询物料供应商映射\nSELECT id, userId, materialCode, supplierId, sharePercentage FROM material_supplier_mappings LIMIT 10;\n\n-- 查询物料计划详情（物料列表）\nSELECT id, planId, materialCode FROM plan_materials LIMIT 10;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway03.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2oD5Rpux9cjqHPq.05f21cb26eb8 --database ZuNBVd6CLssbosJUyd9j6x --execute \n-- 查询物料计划\nSELECT id, fileName, planStartDate, planEndDate FROM material_plans LIMIT 5;\n\n-- 查询物料供应商映射\nSELECT id, userId, materialCode, supplierId, sharePercentage FROM material_supplier_mappings LIMIT 10;\n\n-- 查询物料计划详情（物料列表）\nSELECT id, planId, materialCode FROM plan_materials LIMIT 10;\n",
+  "returncode": 1,
+  "logs": [
+    "id\tfileName\tplanStartDate\tplanEndDate",
+    "180005\t1月5日-2月13日.xlsx\t2026-01-05\t2026-02-13",
+    "id\tuserId\tmaterialCode\tsupplierId\tsharePercentage",
+    "180061\t1\tA0100001\t180029\t100.00",
+    "180062\t1\tA0100038\t180029\t100.00",
+    "180063\t1\tA0100046\t180029\t100.00",
+    "180064\t1\tA0100062\t180029\t100.00",
+    "180065\t1\tA0100136\t180029\t100.00",
+    "180066\t1\tA0100138\t180029\t100.00",
+    "180067\t1\tA0100169\t180029\t100.00",
+    "180068\t1\tA0100171\t180029\t100.00",
+    "180069\t1\tA0100172\t180029\t100.00",
+    "180070\t1\tA0100173\t180029\t100.00",
+    "ERROR 1146 (42S02) at line 9: Table 'zunbvd6clssbosjuyd9j6x.plan_materials' doesn't exist"
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "query": "INSERT INTO material_items (planId, materialCode, materialName) VALUES\n(300001, 'A1300003', '鹏辉电芯'),\n(300001, 'A1300038', '鹏辉电芯'),\n(300001, 'A1300051', '鹏辉电芯');\n\nINSERT INTO material_supplier_mappings (planId, userId, materialCode, supplierId, sharePercentage) VALUES\n(300001, 1, 'A1300003', 1, 50),\n(300001, 1, 'A1300003', 2, 50),\n(300001, 1, 'A1300038', 1, 50),\n(300001, 1, 'A1300038', 2, 50),\n(300001, 1, 'A1300051', 1, 50),\n(300001, 1, 'A1300051', 2, 50);",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway03.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2oD5Rpux9cjqHPq.05f21cb26eb8 --database ZuNBVd6CLssbosJUyd9j6x --execute INSERT INTO material_items (planId, materialCode, materialName) VALUES\n(300001, 'A1300003', '鹏辉电芯'),\n(300001, 'A1300038', '鹏辉电芯'),\n(300001, 'A1300051', '鹏辉电芯');\n\nINSERT INTO material_supplier_mappings (planId, userId, materialCode, supplierId, sharePercentage) VALUES\n(300001, 1, 'A1300003', 1, 50),\n(300001, 1, 'A1300003', 2, 50),\n(300001, 1, 'A1300038', 1, 50),\n(300001, 1, 'A1300038', 2, 50),\n(300001, 1, 'A1300051', 1, 50),\n(300001, 1, 'A1300051', 2, 50);",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 1771
+}

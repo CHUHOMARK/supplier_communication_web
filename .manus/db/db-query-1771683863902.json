@@ -1,0 +1,9 @@
+{
+  "query": "-- 查询物料A1502484的供应商映射\nSELECT \n  msm.materialCode,\n  msm.supplierId,\n  s.supplierName AS supplier_table_name,\n  (SELECT DISTINCT ar.supplierName \n   FROM actual_receipts ar \n   WHERE ar.materialCode = msm.materialCode \n   LIMIT 1) AS erp_supplier_name\nFROM material_supplier_mappings msm\nJOIN suppliers s ON s.id = msm.supplierId\nWHERE msm.materialCode = 'A1502484'\nLIMIT 5;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway03.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2oD5Rpux9cjqHPq.05f21cb26eb8 --database ZuNBVd6CLssbosJUyd9j6x --execute -- 查询物料A1502484的供应商映射\nSELECT \n  msm.materialCode,\n  msm.supplierId,\n  s.supplierName AS supplier_table_name,\n  (SELECT DISTINCT ar.supplierName \n   FROM actual_receipts ar \n   WHERE ar.materialCode = msm.materialCode \n   LIMIT 1) AS erp_supplier_name\nFROM material_supplier_mappings msm\nJOIN suppliers s ON s.id = msm.supplierId\nWHERE msm.materialCode = 'A1502484'\nLIMIT 5;",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 1602
+}

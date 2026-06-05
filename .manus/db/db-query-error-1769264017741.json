@@ -1,0 +1,8 @@
+{
+  "query": "INSERT INTO material_items (planId, userId, materialCode, materialName, quantity, createdAt, updatedAt) VALUES\n(300001, 1, 'A1300003', '鹏辉电芯', 0, NOW(), NOW()),\n(300001, 1, 'A1300038', '鹏辉电芯', 0, NOW(), NOW()),\n(300001, 1, 'A1300051', '鹏辉电芯', 0, NOW(), NOW());\n\nINSERT INTO material_supplier_mappings (planId, userId, materialCode, supplierId, sharePercentage, createdAt, updatedAt) VALUES\n(300001, 1, 'A1300003', 1, '50', NOW(), NOW()),\n(300001, 1, 'A1300003', 2, '50', NOW(), NOW()),\n(300001, 1, 'A1300038', 1, '50', NOW(), NOW()),\n(300001, 1, 'A1300038', 2, '50', NOW(), NOW()),\n(300001, 1, 'A1300051', 1, '50', NOW(), NOW()),\n(300001, 1, 'A1300051', 2, '50', NOW(), NOW());",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway03.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2oD5Rpux9cjqHPq.05f21cb26eb8 --database ZuNBVd6CLssbosJUyd9j6x --execute INSERT INTO material_items (planId, userId, materialCode, materialName, quantity, createdAt, updatedAt) VALUES\n(300001, 1, 'A1300003', '鹏辉电芯', 0, NOW(), NOW()),\n(300001, 1, 'A1300038', '鹏辉电芯', 0, NOW(), NOW()),\n(300001, 1, 'A1300051', '鹏辉电芯', 0, NOW(), NOW());\n\nINSERT INTO material_supplier_mappings (planId, userId, materialCode, supplierId, sharePercentage, createdAt, updatedAt) VALUES\n(300001, 1, 'A1300003', 1, '50', NOW(), NOW()),\n(300001, 1, 'A1300003', 2, '50', NOW(), NOW()),\n(300001, 1, 'A1300038', 1, '50', NOW(), NOW()),\n(300001, 1, 'A1300038', 2, '50', NOW(), NOW()),\n(300001, 1, 'A1300051', 1, '50', NOW(), NOW()),\n(300001, 1, 'A1300051', 2, '50', NOW(), NOW());",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1054 (42S22) at line 1: Unknown column 'userId' in 'field list'"
+  ]
+}

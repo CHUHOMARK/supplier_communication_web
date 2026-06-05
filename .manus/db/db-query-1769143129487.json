@@ -1,0 +1,60 @@
+{
+  "query": "SELECT planId, materialCode, COUNT(*) as supplier_count FROM material_supplier_mappings GROUP BY planId, materialCode HAVING supplier_count > 1 LIMIT 10;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway03.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2oD5Rpux9cjqHPq.05f21cb26eb8 --database ZuNBVd6CLssbosJUyd9j6x --execute SELECT planId, materialCode, COUNT(*) as supplier_count FROM material_supplier_mappings GROUP BY planId, materialCode HAVING supplier_count > 1 LIMIT 10;",
+  "rows": [
+    {
+      "planId": "0",
+      "materialCode": "A0600020",
+      "supplier_count": "2"
+    },
+    {
+      "planId": "0",
+      "materialCode": "A0600150",
+      "supplier_count": "2"
+    },
+    {
+      "planId": "0",
+      "materialCode": "A0800016",
+      "supplier_count": "2"
+    },
+    {
+      "planId": "0",
+      "materialCode": "A0800177",
+      "supplier_count": "2"
+    },
+    {
+      "planId": "0",
+      "materialCode": "A0800236",
+      "supplier_count": "2"
+    },
+    {
+      "planId": "0",
+      "materialCode": "A0800346",
+      "supplier_count": "2"
+    },
+    {
+      "planId": "0",
+      "materialCode": "A1000229",
+      "supplier_count": "2"
+    },
+    {
+      "planId": "0",
+      "materialCode": "A1300003",
+      "supplier_count": "2"
+    },
+    {
+      "planId": "0",
+      "materialCode": "A1300008",
+      "supplier_count": "2"
+    },
+    {
+      "planId": "0",
+      "materialCode": "A1300029",
+      "supplier_count": "3"
+    }
+  ],
+  "messages": [],
+  "stdout": "planId\tmaterialCode\tsupplier_count\n0\tA0600020\t2\n0\tA0600150\t2\n0\tA0800016\t2\n0\tA0800177\t2\n0\tA0800236\t2\n0\tA0800346\t2\n0\tA1000229\t2\n0\tA1300003\t2\n0\tA1300008\t2\n0\tA1300029\t3\n",
+  "stderr": "",
+  "execution_time_ms": 1544
+}

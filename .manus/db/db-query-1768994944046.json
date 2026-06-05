@@ -1,0 +1,45 @@
+{
+  "query": "\nSELECT id, name, openId FROM users LIMIT 1;\nSELECT id, userId, supplierName FROM suppliers LIMIT 5;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway03.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2oD5Rpux9cjqHPq.05f21cb26eb8 --database ZuNBVd6CLssbosJUyd9j6x --execute \nSELECT id, name, openId FROM users LIMIT 1;\nSELECT id, userId, supplierName FROM suppliers LIMIT 5;\n",
+  "rows": [
+    {
+      "id": "1",
+      "name": "Chuho1994",
+      "openId": "D8RzXHa6SWbPRYFWbwRHyP"
+    },
+    {
+      "id": "id",
+      "name": "userId",
+      "openId": "supplierName"
+    },
+    {
+      "id": "180029",
+      "name": "1",
+      "openId": "苏州和欧电子科技有限公司"
+    },
+    {
+      "id": "180030",
+      "name": "1",
+      "openId": "苏州毫欧电子科技有限公司"
+    },
+    {
+      "id": "180031",
+      "name": "1",
+      "openId": "苏州德睿芯电子科技有限公司"
+    },
+    {
+      "id": "180032",
+      "name": "1",
+      "openId": "深圳市宝易成电子有限公司"
+    },
+    {
+      "id": "180033",
+      "name": "1",
+      "openId": "南京立超电子科技有限公司"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\topenId\n1\tChuho1994\tD8RzXHa6SWbPRYFWbwRHyP\nid\tuserId\tsupplierName\n180029\t1\t苏州和欧电子科技有限公司\n180030\t1\t苏州毫欧电子科技有限公司\n180031\t1\t苏州德睿芯电子科技有限公司\n180032\t1\t深圳市宝易成电子有限公司\n180033\t1\t南京立超电子科技有限公司\n",
+  "stderr": "",
+  "execution_time_ms": 1734
+}
