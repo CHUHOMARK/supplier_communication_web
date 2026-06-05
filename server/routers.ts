@@ -2068,6 +2068,44 @@ export const appRouter = router({
     }),
 
 
+    // Update supplier profile (supplier code and default PIN)
+    updateProfile: publicProcedure
+      .input(z.object({
+        supplierCode: z.string().min(1, "供应商编号不能为空"),
+        defaultPin: z.string().min(4, "PIN码至少4位").max(20),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const cookies = ctx.req.headers.cookie;
+        if (!cookies) throw new TRPCError({ code: 'UNAUTHORIZED', message: '未登录' });
+        const cookieMatch = cookies.match(/supplier_session=([^;]+)/);
+        if (!cookieMatch) throw new TRPCError({ code: 'UNAUTHORIZED', message: '未登录' });
+        try {
+          const token = cookieMatch[1];
+          const decoded = jwt.verify(token, ENV.jwtSecret) as { supplierId: number; supplierCode: string; role: string };
+          if (decoded.role !== 'supplier') throw new TRPCError({ code: 'UNAUTHORIZED', message: '无权限' });
+          
+          // Check if supplier code already exists for another supplier
+          const existingSupplier = await db.getSupplierByCode(input.supplierCode);
+          if (existingSupplier && existingSupplier.id !== decoded.supplierId) {
+            throw new TRPCError({ code: 'BAD_REQUEST', message: '供应商编号已被使用' });
+          }
+          
+          // Hash the new PIN
+          const hashedPin = await bcrypt.hash(input.defaultPin, 10);
+          
+          // Update supplier
+          await db.updateSupplier(decoded.supplierId, {
+            supplierCode: input.supplierCode,
+            defaultPin: hashedPin,
+          });
+          
+          return { success: true, message: '资料已更新' };
+        } catch (error) {
+          if (error instanceof TRPCError) throw error;
+          throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: '更新失败' });
+        }
+      }),
+
     // Get dashboard stats (for summary cards)
     getDashboardStats: publicProcedure.query(async ({ ctx }) => {
       const cookies = ctx.req.headers.cookie;

@@ -160,12 +160,75 @@ export default function SupplierPortal() {
                 </span>
               </div>
             )}
+            <Button variant="outline" size="sm" onClick={handleOpenProfile} className="text-xs">
+              <Settings className="h-3.5 w-3.5 mr-1.5" /> 设置
+            </Button>
             <Button variant="outline" size="sm" onClick={handleLogout} disabled={logoutMutation.isPending} className="text-xs">
               <LogOut className="h-3.5 w-3.5 mr-1.5" /> 退出
             </Button>
           </div>
         </div>
       </div>
+
+      {/* Profile Dialog */}
+      <Dialog open={showProfileDialog} onOpenChange={setShowProfileDialog}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>编辑供应商资料</DialogTitle>
+            <DialogDescription>
+              修改您的供应商编号和默认PIN码。修改后请使用新的编号和PIN码登录。
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="supplierCode">供应商编号</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="supplierCode"
+                  value={profileSupplierCode}
+                  onChange={(e) => setProfileSupplierCode(e.target.value)}
+                  placeholder="请输入供应商编号"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={() => copyToClipboard(profileSupplierCode)}
+                >
+                  {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                </Button>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="pin">默认PIN码</Label>
+              <Input
+                id="pin"
+                type="password"
+                value={profilePin}
+                onChange={(e) => setProfilePin(e.target.value)}
+                placeholder="至少4位"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="pinConfirm">确认PIN码</Label>
+              <Input
+                id="pinConfirm"
+                type="password"
+                value={profilePinConfirm}
+                onChange={(e) => setProfilePinConfirm(e.target.value)}
+                placeholder="再次输入PIN码"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowProfileDialog(false)}>取消</Button>
+            <Button onClick={handleSaveProfile} disabled={updateProfileMutation.isPending}>
+              {updateProfileMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              保存
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <div className="max-w-6xl mx-auto px-4 py-5 space-y-5">
         {/* Stats Cards */}
