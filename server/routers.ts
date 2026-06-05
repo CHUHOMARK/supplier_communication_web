@@ -4,12 +4,14 @@ import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import { z } from "zod";
 import * as db from "./db";
+import * as supplierAuthDb from "./supplierAuth";
 import { parseMaterialPlanExcel, parseSupplierMappingExcel } from "./excelParser";
 import { generateSupplierEmail, generateEmailCSV } from "./emailGenerator";
 import { TRPCError } from "@trpc/server";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { ENV } from "./_core/env";
+import { SUPPLIER_COOKIE_NAME } from "@shared/const";
 import { generateModificationExcel } from "./modificationExporter";
 
 export const appRouter = router({
@@ -1721,6 +1723,306 @@ export const appRouter = router({
         return details;
       }),
   }),
+
+  // ============ 供应商认证和门户 ============
+  
+  // 供应商认证
+  supplierAuth: router({
+    // 供应商登录
+    login: publicProcedure
+      .input(z.object({
+        supplierCode: z.string().min(1, "供应商编号不能为空"),
+        pinCode: z.string().min(1, "PIN码不能为空"),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const account = await supplierAuthDb.verifySupplierPin(input.supplierCode, input.pinCode);
+        if (!account) {
+          throw new TRPCError({
+            code: 'UNAUTHORIZED',
+            message: '供应商编号或PIN码错误',
+          });
+        }
+        
+        // 更新最后登录时间
+        await supplierAuthDb.updateSupplierLastLogin(account.id);
+        
+        // 生成JWT token (30天有效期)
+        const maxAge = 30 * 24 * 60 * 60 * 1000;
+        const token = jwt.sign(
+          { supplierAccountId: account.id, supplierId: account.supplierId, userId: account.userId },
+          ENV.jwtSecret,
+          { expiresIn: maxAge / 1000 }
+        );
+        
+        // 设置cookie
+        const cookieOptions = getSessionCookieOptions(ctx.req);
+        ctx.res.cookie(SUPPLIER_COOKIE_NAME, token, {
+          ...cookieOptions,
+          maxAge,
+        });
+        
+        return {
+          success: true,
+          isFirstLogin: account.isFirstLogin,
+          supplierCode: account.supplierCode,
+        };
+      }),
+    
+    // 供应商登出
+    logout: publicProcedure.mutation(({ ctx }) => {
+      const cookieOptions = getSessionCookieOptions(ctx.req);
+      ctx.res.clearCookie(SUPPLIER_COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
+      return { success: true };
+    }),
+    
+    // 获取当前供应商信息
+    me: publicProcedure.query(async ({ ctx }) => {
+      const cookieHeader = ctx.req.headers.cookie || '';
+      const cookies = Object.fromEntries(
+        cookieHeader.split(';').map(c => {
+          const [key, ...val] = c.trim().split('=');
+          return [key, val.join('=')];
+        })
+      );
+      const token = cookies[SUPPLIER_COOKIE_NAME];
+      if (!token) return null;
+      
+      try {
+        const decoded = jwt.verify(token, ENV.jwtSecret) as { supplierAccountId: number; supplierId: number; userId: number };
+        const account = await supplierAuthDb.getSupplierAccountBySupplierId(decoded.supplierId);
+        if (!account || !account.isActive) return null;
+        
+        // 获取供应商信息
+        const supplierInfo = await db.getSupplierById(decoded.supplierId);
+        
+        return {
+          id: account.id,
+          supplierId: account.supplierId,
+          userId: account.userId,
+          supplierCode: account.supplierCode,
+          supplierName: supplierInfo?.supplierName || '',
+          isFirstLogin: account.isFirstLogin,
+        };
+      } catch {
+        return null;
+      }
+    }),
+    
+    // 修改PIN码
+    changePin: publicProcedure
+      .input(z.object({
+        oldPin: z.string().min(1),
+        newPin: z.string().min(6, "PIN码至少6位"),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        // 从 cookie 获取供应商信息
+        const cookieHeader = ctx.req.headers.cookie || '';
+        const cookies = Object.fromEntries(
+          cookieHeader.split(';').map(c => {
+            const [key, ...val] = c.trim().split('=');
+            return [key, val.join('=')];
+          })
+        );
+        const token = cookies[SUPPLIER_COOKIE_NAME];
+        if (!token) throw new TRPCError({ code: 'UNAUTHORIZED', message: '请先登录' });
+        
+        const decoded = jwt.verify(token, ENV.jwtSecret) as { supplierAccountId: number; supplierId: number };
+        const account = await supplierAuthDb.getSupplierAccountByCode(
+          (await supplierAuthDb.getSupplierAccountBySupplierId(decoded.supplierId))?.supplierCode || ''
+        );
+        if (!account) throw new TRPCError({ code: 'NOT_FOUND', message: '账号不存在' });
+        
+        // 验证旧PIN码
+        const isValid = await bcrypt.compare(input.oldPin, account.pinCode);
+        if (!isValid) throw new TRPCError({ code: 'BAD_REQUEST', message: '原PIN码错误' });
+        
+        // 更新PIN码
+        await supplierAuthDb.updateSupplierPin(account.id, input.newPin);
+        
+        return { success: true, message: 'PIN码修改成功' };
+      }),
+  }),
+  
+  // 供应商门户数据
+  supplierPortal: router({
+    // 获取分配给供应商的物料列表
+    getMaterials: publicProcedure.query(async ({ ctx }) => {
+      const supplier = await getSupplierFromCookie(ctx);
+      return await supplierAuthDb.getSupplierMaterials(supplier.supplierId, supplier.userId);
+    }),
+    
+    // 获取交货计划（每日交货量网格）
+    getDeliverySchedule: publicProcedure.query(async ({ ctx }) => {
+      const supplier = await getSupplierFromCookie(ctx);
+      return await supplierAuthDb.getSupplierDeliverySchedule(supplier.supplierId, supplier.userId);
+    }),
+    
+    // 获取生产进度
+    getProgress: publicProcedure
+      .input(z.object({ planId: z.number() }))
+      .query(async ({ ctx, input }) => {
+        const supplier = await getSupplierFromCookie(ctx);
+        return await supplierAuthDb.getSupplierProgress(supplier.supplierId, input.planId);
+      }),
+    
+    // 更新生产进度
+    updateProgress: publicProcedure
+      .input(z.object({
+        planId: z.number(),
+        materialCode: z.string(),
+        currentStep: z.enum(['material_prep', 'scheduling', 'quality_check', 'shipping', 'delivered']),
+        notes: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const supplier = await getSupplierFromCookie(ctx);
+        await supplierAuthDb.updateSupplierProgress({
+          supplierId: supplier.supplierId,
+          planId: input.planId,
+          materialCode: input.materialCode,
+          currentStep: input.currentStep,
+          notes: input.notes,
+        });
+        return { success: true };
+      }),
+    
+    // 批量更新生产进度
+    batchUpdateProgress: publicProcedure
+      .input(z.object({
+        planId: z.number(),
+        materialCodes: z.array(z.string()),
+        currentStep: z.enum(['material_prep', 'scheduling', 'quality_check', 'shipping', 'delivered']),
+        notes: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const supplier = await getSupplierFromCookie(ctx);
+        await supplierAuthDb.batchUpdateSupplierProgress({
+          supplierId: supplier.supplierId,
+          planId: input.planId,
+          materialCodes: input.materialCodes,
+          currentStep: input.currentStep,
+          notes: input.notes,
+        });
+        return { success: true };
+      }),
+    
+    // 获取供应商确认记录
+    getConfirmations: publicProcedure.query(async ({ ctx }) => {
+      const supplier = await getSupplierFromCookie(ctx);
+      return await supplierAuthDb.getSupplierConfirmations(supplier.supplierId);
+    }),
+    
+    // 获取供应商消息
+    getMessages: publicProcedure
+      .input(z.object({ limit: z.number().default(50) }).optional())
+      .query(async ({ ctx, input }) => {
+        const supplier = await getSupplierFromCookie(ctx);
+        return await supplierAuthDb.getSupplierMessages(supplier.supplierId, input?.limit || 50);
+      }),
+    
+    // 获取未读消息数量
+    getUnreadCount: publicProcedure.query(async ({ ctx }) => {
+      const supplier = await getSupplierFromCookie(ctx);
+      return await supplierAuthDb.getSupplierUnreadMessageCount(supplier.supplierId);
+    }),
+    
+    // 标记消息为已读
+    markMessageAsRead: publicProcedure
+      .input(z.object({ messageId: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const supplier = await getSupplierFromCookie(ctx);
+        await supplierAuthDb.markSupplierMessageAsRead(input.messageId, supplier.supplierId);
+        return { success: true };
+      }),
+    
+    // 标记所有消息为已读
+    markAllMessagesAsRead: publicProcedure.mutation(async ({ ctx }) => {
+      const supplier = await getSupplierFromCookie(ctx);
+      await supplierAuthDb.markAllSupplierMessagesAsRead(supplier.supplierId);
+      return { success: true };
+    }),
+  }),
+  
+  // 管理员管理供应商账号
+  supplierAccountAdmin: router({
+    // 获取所有供应商账号
+    list: protectedProcedure.query(async ({ ctx }) => {
+      return await supplierAuthDb.getSupplierAccountsByUserId(ctx.user.id);
+    }),
+    
+    // 创建供应商账号
+    create: protectedProcedure
+      .input(z.object({
+        supplierId: z.number(),
+        pinCode: z.string().default('888888'),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        // 检查是否已存在账号
+        const existing = await supplierAuthDb.getSupplierAccountBySupplierId(input.supplierId);
+        if (existing) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: '该供应商已有账号',
+          });
+        }
+        
+        // 生成供应商编号
+        const supplierCode = await supplierAuthDb.generateSupplierCode(ctx.user.id);
+        
+        // 创建账号
+        const accountId = await supplierAuthDb.createSupplierAccount({
+          supplierId: input.supplierId,
+          userId: ctx.user.id,
+          supplierCode,
+          pinCode: input.pinCode,
+        });
+        
+        return {
+          success: true,
+          accountId,
+          supplierCode,
+          pinCode: input.pinCode,
+        };
+      }),
+    
+    // 重置PIN码
+    resetPin: protectedProcedure
+      .input(z.object({
+        accountId: z.number(),
+        newPin: z.string().default('888888'),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        await supplierAuthDb.resetSupplierPin(input.accountId, input.newPin);
+        return { success: true, newPin: input.newPin };
+      }),
+    
+    // 删除供应商账号
+    delete: protectedProcedure
+      .input(z.object({ accountId: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        await supplierAuthDb.deleteSupplierAccount(input.accountId, ctx.user.id);
+        return { success: true };
+      }),
+  }),
 });
+
+// 辅助函数：从 cookie 获取供应商信息
+async function getSupplierFromCookie(ctx: any): Promise<{ supplierId: number; userId: number }> {
+  const cookieHeader = ctx.req.headers.cookie || '';
+  const cookies = Object.fromEntries(
+    cookieHeader.split(';').map((c: string) => {
+      const [key, ...val] = c.trim().split('=');
+      return [key, val.join('=')];
+    })
+  );
+  const token = cookies[SUPPLIER_COOKIE_NAME];
+  if (!token) throw new TRPCError({ code: 'UNAUTHORIZED', message: '请先登录供应商门户' });
+  
+  try {
+    const decoded = jwt.verify(token, ENV.jwtSecret) as { supplierAccountId: number; supplierId: number; userId: number };
+    return { supplierId: decoded.supplierId, userId: decoded.userId };
+  } catch {
+    throw new TRPCError({ code: 'UNAUTHORIZED', message: '登录已过期，请重新登录' });
+  }
+}
 
 export type AppRouter = typeof appRouter;

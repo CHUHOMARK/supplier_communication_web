@@ -331,3 +331,77 @@ export const followUpEmails = mysqlTable("follow_up_emails", {
 
 export type FollowUpEmail = typeof followUpEmails.$inferSelect;
 export type InsertFollowUpEmail = typeof followUpEmails.$inferInsert;
+
+
+/**
+ * 供应商账号表（供应商登录系统）
+ */
+export const supplierAccounts = mysqlTable("supplier_accounts", {
+  id: int("id").autoincrement().primaryKey(),
+  supplierId: int("supplierId").notNull(), // 关联的供应商ID
+  userId: int("userId").notNull(), // 创建该账号的管理员用户ID
+  supplierCode: varchar("supplierCode", { length: 50 }).notNull().unique(), // 供应商编号 (S1-XXX)
+  pinCode: varchar("pinCode", { length: 255 }).notNull(), // PIN码（加密存储）
+  isFirstLogin: boolean("isFirstLogin").notNull().default(true), // 是否首次登录
+  isActive: boolean("isActive").notNull().default(true), // 是否启用
+  lastLoginAt: timestamp("lastLoginAt"), // 最后登录时间
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => ({
+  supplierIdIdx: index("idx_sa_supplier_id").on(table.supplierId),
+  userIdIdx: index("idx_sa_user_id").on(table.userId),
+}));
+
+export type SupplierAccount = typeof supplierAccounts.$inferSelect;
+export type InsertSupplierAccount = typeof supplierAccounts.$inferInsert;
+
+/**
+ * 供应商消息通知表
+ */
+export const supplierMessages = mysqlTable("supplier_messages", {
+  id: int("id").autoincrement().primaryKey(),
+  supplierId: int("supplierId").notNull(), // 接收消息的供应商ID
+  userId: int("userId").notNull(), // 发送消息的管理员用户ID
+  type: mysqlEnum("type", ["new_plan", "plan_update", "reminder", "system"]).notNull(), // 消息类型
+  title: varchar("title", { length: 255 }).notNull(), // 消息标题
+  content: text("content").notNull(), // 消息内容
+  relatedPlanId: int("relatedPlanId"), // 关联的物料计划ID
+  isRead: boolean("isRead").notNull().default(false), // 是否已读
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  readAt: timestamp("readAt"), // 已读时间
+}, (table) => ({
+  supplierIdIdx: index("idx_sm_supplier_id").on(table.supplierId),
+  isReadIdx: index("idx_sm_is_read").on(table.isRead),
+  createdAtIdx: index("idx_sm_created_at").on(table.createdAt),
+}));
+
+export type SupplierMessage = typeof supplierMessages.$inferSelect;
+export type InsertSupplierMessage = typeof supplierMessages.$inferInsert;
+
+/**
+ * 供应商生产进度表
+ */
+export const supplierProductionProgress = mysqlTable("supplier_production_progress", {
+  id: int("id").autoincrement().primaryKey(),
+  supplierId: int("supplierId").notNull(), // 供应商ID
+  planId: int("planId").notNull(), // 物料计划ID
+  materialCode: varchar("materialCode", { length: 100 }).notNull(), // 物料代码
+  /** 生产进度步骤: 备料→排产→质检→出货→已交付 */
+  currentStep: mysqlEnum("currentStep", ["material_prep", "scheduling", "quality_check", "shipping", "delivered"]).default("material_prep").notNull(),
+  materialPrepAt: timestamp("materialPrepAt"), // 备料完成时间
+  schedulingAt: timestamp("schedulingAt"), // 排产完成时间
+  qualityCheckAt: timestamp("qualityCheckAt"), // 质检完成时间
+  shippingAt: timestamp("shippingAt"), // 出货完成时间
+  deliveredAt: timestamp("deliveredAt"), // 交付完成时间
+  notes: text("notes"), // 备注
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => ({
+  supplierIdIdx: index("idx_spp_supplier_id").on(table.supplierId),
+  planIdIdx: index("idx_spp_plan_id").on(table.planId),
+  materialCodeIdx: index("idx_spp_material_code").on(table.materialCode),
+  uniqueProgress: unique("unique_spp_progress").on(table.supplierId, table.planId, table.materialCode),
+}));
+
+export type SupplierProductionProgress = typeof supplierProductionProgress.$inferSelect;
+export type InsertSupplierProductionProgress = typeof supplierProductionProgress.$inferInsert;

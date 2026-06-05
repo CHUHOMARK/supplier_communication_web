@@ -6,7 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Users, Plus, Upload, Download, CheckCircle, AlertCircle, Trash2 } from "lucide-react";
+import { Users, Plus, Upload, Download, CheckCircle, AlertCircle, Trash2, KeyRound, Copy, RotateCcw } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import PurchaseOrderImport from "@/components/PurchaseOrderImport";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
@@ -47,6 +48,56 @@ export default function SupplierManagement({ onMappingComplete }: SupplierManage
       toast.error(`创建失败：${error.message}`);
     },
   });
+
+  const [accountDialogOpen, setAccountDialogOpen] = useState(false);
+  const [accountResult, setAccountResult] = useState<{ supplierCode: string; pinCode: string; supplierName: string } | null>(null);
+
+  const createAccountMutation = trpc.supplierAccountAdmin.create.useMutation({
+    onSuccess: (data) => {
+      setAccountResult({ supplierCode: data.supplierCode, pinCode: data.pinCode, supplierName: '' });
+      setAccountDialogOpen(true);
+      toast.success('供应商账号创建成功');
+      utils.supplier.list.invalidate();
+      utils.supplierAccountAdmin.list.invalidate();
+    },
+    onError: (error) => {
+      toast.error(`创建账号失败：${error.message}`);
+    },
+  });
+
+  const { data: supplierAccounts } = trpc.supplierAccountAdmin.list.useQuery();
+
+  const resetPinMutation = trpc.supplierAccountAdmin.resetPin.useMutation({
+    onSuccess: () => {
+      toast.success('PIN码已重置为默认值 888888');
+    },
+    onError: (error: any) => {
+      toast.error(`重置失败：${error.message}`);
+    },
+  });
+
+  const handleCreateAccount = (supplierId: number, supplierName: string) => {
+    createAccountMutation.mutate({ supplierId });
+  };
+
+  const handleResetPin = (supplierId: number, name: string) => {
+    const accountRecord = supplierAccounts?.find((a) => a.account.supplierId === supplierId);
+    if (!accountRecord) {
+      toast.error('未找到该供应商的账号');
+      return;
+    }
+    if (confirm(`确定要重置供应商"${name}"的PIN码为默认值 888888 吗？`)) {
+      resetPinMutation.mutate({ accountId: accountRecord.account.id });
+    }
+  };
+
+  const handleCopyCredentials = () => {
+    if (accountResult) {
+      const text = `供应商登录凭证\n供应商名称：${accountResult.supplierName}\n供应商编号：${accountResult.supplierCode}\n默认PIN码：${accountResult.pinCode}\n登录地址：${window.location.origin}/supplier-login`;
+      navigator.clipboard.writeText(text);
+      toast.success('登录凭证已复制到剪贴板');
+    }
+  };
 
   const deleteSupplierMutation = trpc.supplier.delete.useMutation({
     onSuccess: () => {
@@ -410,13 +461,34 @@ export default function SupplierManagement({ onMappingComplete }: SupplierManage
                       </TableCell>
                       <TableCell>{supplier.phone || '-'}</TableCell>
                       <TableCell className="text-right">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => handleDeleteSupplier(supplier.id, supplier.supplierName)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        <div className="flex items-center justify-end gap-1">
+                          {supplierAccounts?.some((a) => a.account.supplierId === supplier.id) ? (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              title="重置PIN码"
+                              onClick={() => handleResetPin(supplier.id, supplier.supplierName)}
+                            >
+                              <RotateCcw className="h-4 w-4" />
+                            </Button>
+                          ) : (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              title="创建登录账号"
+                              onClick={() => handleCreateAccount(supplier.id, supplier.supplierName)}
+                            >
+                              <KeyRound className="h-4 w-4" />
+                            </Button>
+                          )}
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleDeleteSupplier(supplier.id, supplier.supplierName)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -432,6 +504,39 @@ export default function SupplierManagement({ onMappingComplete }: SupplierManage
           </div>
         </CardContent>
       </Card>
+      {/* 账号凭证展示对话框 */}
+      <Dialog open={accountDialogOpen} onOpenChange={setAccountDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>供应商账号创建成功</DialogTitle>
+            <DialogDescription>请将以下登录凭证发送给供应商</DialogDescription>
+          </DialogHeader>
+          {accountResult && (
+            <div className="space-y-3 p-4 bg-muted rounded-lg">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-muted-foreground">供应商编号</span>
+                <span className="font-mono font-bold text-lg">{accountResult.supplierCode}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-muted-foreground">默认PIN码</span>
+                <span className="font-mono font-bold text-lg">{accountResult.pinCode}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-muted-foreground">登录地址</span>
+                <span className="text-sm font-mono">{window.location.origin}/supplier-login</span>
+              </div>
+            </div>
+          )}
+          <DialogFooter className="gap-2">
+            <Button onClick={handleCopyCredentials}>
+              <Copy className="h-4 w-4 mr-2" />复制凭证
+            </Button>
+            <Button variant="outline" onClick={() => setAccountDialogOpen(false)}>
+              关闭
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

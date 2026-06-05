@@ -17,6 +17,8 @@ import Suppliers from "./pages/Suppliers";
 import Emails from "./pages/Emails";
 import ERPImport from "./pages/ERPImport";
 import SupplierPerformanceReport from "./pages/SupplierPerformanceReport";
+import SupplierLogin from "./pages/SupplierLogin";
+import SupplierPortal from "./pages/SupplierPortal";
 
 import { useAuth } from "./_core/hooks/useAuth";
 import { useEffect } from "react";
@@ -57,6 +59,9 @@ function Router() {
       <Route path={"/login"} component={Login} />
       <Route path={"/register"} component={Register} />
       <Route path={"/confirm/:token"} component={SupplierConfirm} />
+      <Route path={"/supplier-login"} component={SupplierLogin} />
+      <Route path={"/supplier-portal"} component={SupplierPortal} />
+      <Route path={"/supplier-portal/:tab"} component={SupplierPortal} />
       <Route path={"/"}>
         <ProtectedRoute component={Dashboard} />
       </Route>
