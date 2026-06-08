@@ -12,9 +12,14 @@ export default function SupplierLogin() {
   const [, setLocation] = useLocation();
   const [supplierCode, setSupplierCode] = useState("");
   const [pinCode, setPinCode] = useState("");
+  const utils = trpc.useUtils();
 
   const loginMutation = trpc.supplierAuth.login.useMutation({
     onSuccess: (data) => {
+      // 清除所有供应商相关缓存，确保切换账号时显示正确数据
+      utils.supplierAuth.me.invalidate();
+      utils.supplierPortal.invalidate();
+      
       if (data.isFirstLogin) {
         // 首次登录跳转到修改PIN码页面
         setLocation("/supplier-portal/change-pin");

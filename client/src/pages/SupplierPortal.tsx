@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useLocation } from "wouter";
+import { useLocation, useRoute } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,12 +15,23 @@ import SupplierProgress from "@/components/supplier-portal/SupplierProgress";
 import SupplierMessages from "@/components/supplier-portal/SupplierMessages";
 import SupplierSettings from "@/components/supplier-portal/SupplierSettings";
 
+const TAB_MAP: Record<string, string> = {
+  materials: 'materials',
+  schedule: 'schedule',
+  progress: 'progress',
+  messages: 'messages',
+  settings: 'settings',
+  'change-pin': 'settings',
+};
+
 export default function SupplierPortal() {
   const [, setLocation] = useLocation();
-  const [activeTab, setActiveTab] = useState("materials");
+  const [, params] = useRoute("/supplier-portal/:tab");
+  const urlTab = params?.tab ? (TAB_MAP[params.tab] || 'materials') : 'materials';
+  const [activeTab, setActiveTab] = useState(urlTab);
   
   const { data: supplierInfo, isLoading } = trpc.supplierAuth.me.useQuery(undefined, {
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0, // 不缓存，确保每次获取最新数据
   });
   const { data: unreadCount } = trpc.supplierPortal.getUnreadCount.useQuery(undefined, {
     staleTime: 60 * 1000,
