@@ -54,7 +54,7 @@ export default function SupplierManagement({ onMappingComplete }: SupplierManage
 
   const createAccountMutation = trpc.supplierAccountAdmin.create.useMutation({
     onSuccess: (data) => {
-      setAccountResult({ supplierCode: data.supplierCode, pinCode: data.pinCode, supplierName: '' });
+      setAccountResult({ supplierCode: data.supplierCode, pinCode: data.pinCode, supplierName: data.supplierName });
       setAccountDialogOpen(true);
       toast.success('供应商账号创建成功');
       utils.supplier.list.invalidate();
@@ -77,7 +77,7 @@ export default function SupplierManagement({ onMappingComplete }: SupplierManage
   });
 
   const handleCreateAccount = (supplierId: number, supplierName: string) => {
-    createAccountMutation.mutate({ supplierId });
+    createAccountMutation.mutate({ supplierId, supplierName });
   };
 
   const handleResetPin = (supplierId: number, name: string) => {
@@ -179,14 +179,36 @@ export default function SupplierManagement({ onMappingComplete }: SupplierManage
     }
   };
 
+  const importEmailsMutation = trpc.supplier.importEmails.useMutation({
+    onSuccess: (data) => {
+      let message = `导入完成！\n总计: ${data.totalCount} 条\n成功: ${data.updatedCount} 个`;
+      
+      if (data.failedList && data.failedList.length > 0) {
+        message += `\n未匹配: ${data.failedList.length} 个`;
+        message += `\n\n未匹配的供应商:\n${data.failedList.join('\n')}`;
+      }
+      
+      if (data.skippedList && data.skippedList.length > 0) {
+        message += `\n跳过: ${data.skippedList.length} 条`;
+      }
+      
+      if (data.updatedCount > 0) {
+        toast.success(message, { duration: 8000 });
+        utils.supplier.list.invalidate();
+      } else {
+        toast.warning(message, { duration: 8000 });
+      }
+    },
+    onError: (error) => {
+      toast.error(`导入失败：${error.message}`);
+    },
+  });
+
   const handleEmailImportFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    console.log('handleEmailImportFileChange called');
     const selectedFile = e.target.files?.[0];
     if (!selectedFile) {
-      console.log('No file selected');
       return;
     }
-    console.log('Selected file:', selectedFile.name);
 
     if (!selectedFile.name.endsWith('.xlsx') && !selectedFile.name.endsWith('.xls')) {
       toast.error('请上传Excel文件（.xlsx或.xls格式）');
@@ -198,43 +220,7 @@ export default function SupplierManagement({ onMappingComplete }: SupplierManage
       reader.onload = async (event) => {
         const base64 = event.target?.result as string;
         const fileBase64 = base64.split(',')[1];
-
-        try {
-          console.log('Calling importEmails API with fileBase64 length:', fileBase64.length);
-          const result = await fetch('/api/trpc/supplier.importEmails', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              json: { fileBase64, filename: selectedFile.name }
-            })
-          }).then(res => res.json());
-          console.log('API response:', result);
-
-          if (result.result?.data) {
-            const data = result.result.data;
-            let message = `导入完成！\n总计: ${data.totalCount} 条\n成功: ${data.updatedCount} 个`;
-            
-            if (data.failedList && data.failedList.length > 0) {
-              message += `\n未匹配: ${data.failedList.length} 个`;
-              message += `\n\n未匹配的供应商:\n${data.failedList.join('\n')}`;
-            }
-            
-            if (data.skippedList && data.skippedList.length > 0) {
-              message += `\n跳过: ${data.skippedList.length} 条`;
-            }
-            
-            if (data.updatedCount > 0) {
-              toast.success(message, { duration: 8000 });
-              utils.supplier.list.invalidate();
-            } else {
-              toast.warning(message, { duration: 8000 });
-            }
-          } else {
-            throw new Error('导入失败');
-          }
-        } catch (error: any) {
-          toast.error(`导入失败：${error.message}`);
-        }
+        importEmailsMutation.mutate({ fileBase64, filename: selectedFile.name });
       };
       reader.readAsDataURL(selectedFile);
     } catch (error: any) {
@@ -257,21 +243,18 @@ export default function SupplierManagement({ onMappingComplete }: SupplierManage
       <Card>
         <CardHeader>
           <CardTitle>选择物料计划</CardTitle>
-          <CardDescription>
-            选择要导入供应商数据的物料计划
-          </CardDescription>
+          <CardDescription></CardDescription>
         </CardHeader>
         <CardContent>
-          <Label>物料计划</Label>
-          <Select value={selectedPlanId.toString()} onValueChange={(val) => setSelectedPlanId(Number(val))}>
-            <SelectTrigger className="mt-2">
+          <Select value={selectedPlanId.toString()} onValueChange={(v) => setSelectedPlanId(Number(v))}>
+            <SelectTrigger>
               <SelectValue placeholder="选择物料计划" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="0">全局映射（不指定计划）</SelectItem>
-              {plans?.map((plan) => (
+              <SelectItem value="0">所有计划</SelectItem>
+              {plans?.map(plan => (
                 <SelectItem key={plan.id} value={plan.id.toString()}>
-                  {plan.fileName} ({plan.planStartDate} 至 {plan.planEndDate})
+                  {plan.fileName} ({plan.planStartDate} ~ {plan.planEndDate})
                 </SelectItem>
               ))}
             </SelectContent>
@@ -279,137 +262,99 @@ export default function SupplierManagement({ onMappingComplete }: SupplierManage
         </CardContent>
       </Card>
 
-      {/* 采购订单导入 */}
-      {selectedPlanId > 0 && (
-        <PurchaseOrderImport 
-          planId={selectedPlanId}
-          onImportComplete={() => {
-            utils.supplier.list.invalidate();
-            utils.mapping.list.invalidate();
-            onMappingComplete?.();
-          }} 
-        />
-      )}
-
-      {/* 供应商列表（紧凑表格） */}
+      {/* 供应商列表 */}
       <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Users className="h-5 w-5" />
-              <CardTitle>供应商列表</CardTitle>
-            </div>
-            <div className="flex gap-2">
-              <Button size="sm" variant="outline" onClick={handleDownloadEmailTemplate}>
-                <Download className="h-4 w-4 mr-2" />
-                下载模板
-              </Button>
-              <Button size="sm" onClick={() => document.getElementById('email-import-file')?.click()}>
-                <Upload className="h-4 w-4 mr-2" />
-                批量导入邮箱
-              </Button>
-              <input
-                ref={emailImportInputRef}
-                id="email-import-file"
-                type="file"
-                accept=".xlsx,.xls"
-                style={{ display: 'none' }}
-                onChange={(e) => {
-                  console.log('[onChange] Event triggered!', e.target.files);
-                  handleEmailImportFileChange(e);
-                }}
-              />
-              <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button size="sm">
-                    <Plus className="h-4 w-4 mr-2" />
-                    添加供应商
-                  </Button>
-                </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>添加新供应商</DialogTitle>
-                  <DialogDescription>填写供应商基本信息</DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4">
-                  <div>
-                    <Label>供应商名称 *</Label>
-                    <Input
-                      value={newSupplier.supplierName}
-                      onChange={(e) => setNewSupplier({ ...newSupplier, supplierName: e.target.value })}
-                      placeholder="请输入供应商名称"
-                    />
-                  </div>
-                  <div>
-                    <Label>联系人</Label>
-                    <Input
-                      value={newSupplier.contactPerson}
-                      onChange={(e) => setNewSupplier({ ...newSupplier, contactPerson: e.target.value })}
-                      placeholder="请输入联系人姓名"
-                    />
-                  </div>
-                  <div>
-                    <Label>邮箱</Label>
-                    <Input
-                      type="email"
-                      value={newSupplier.email}
-                      onChange={(e) => setNewSupplier({ ...newSupplier, email: e.target.value })}
-                      placeholder="请输入邮箱地址"
-                    />
-                  </div>
-                  <div>
-                    <Label>电话</Label>
-                    <Input
-                      value={newSupplier.phone}
-                      onChange={(e) => setNewSupplier({ ...newSupplier, phone: e.target.value })}
-                      placeholder="请输入联系电话"
-                    />
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setAddDialogOpen(false)}>
-                    取消
-                  </Button>
-                  <Button onClick={handleCreateSupplier}>
-                    确定
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-            </div>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <Users className="w-5 h-5" />
+              供应商管理
+            </CardTitle>
+            <CardDescription>管理供应商信息和登录账号</CardDescription>
           </div>
-          <CardDescription>管理您的供应商信息</CardDescription>
+          <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="gap-2">
+                <Plus className="w-4 h-4" />
+                新增供应商
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>新增供应商</DialogTitle>
+                <DialogDescription>填写供应商基本信息</DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="supplierName">供应商名称 *</Label>
+                  <Input
+                    id="supplierName"
+                    value={newSupplier.supplierName}
+                    onChange={(e) => setNewSupplier({ ...newSupplier, supplierName: e.target.value })}
+                    placeholder="请输入供应商名称"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="contactPerson">联系人</Label>
+                  <Input
+                    id="contactPerson"
+                    value={newSupplier.contactPerson}
+                    onChange={(e) => setNewSupplier({ ...newSupplier, contactPerson: e.target.value })}
+                    placeholder="请输入联系人"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="email">邮箱</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={newSupplier.email}
+                    onChange={(e) => setNewSupplier({ ...newSupplier, email: e.target.value })}
+                    placeholder="请输入邮箱"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="phone">电话</Label>
+                  <Input
+                    id="phone"
+                    value={newSupplier.phone}
+                    onChange={(e) => setNewSupplier({ ...newSupplier, phone: e.target.value })}
+                    placeholder="请输入电话"
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setAddDialogOpen(false)}>取消</Button>
+                <Button onClick={handleCreateSupplier} disabled={createSupplierMutation.isPending}>
+                  {createSupplierMutation.isPending ? '创建中...' : '创建'}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </CardHeader>
-        <CardContent className="space-y-4">
-          {/* 物料计划选择器 */}
-          <div className="flex items-center gap-2">
-            <Label className="whitespace-nowrap">筛选计划：</Label>
-            <Select
-              value={selectedPlanId?.toString() || "all"}
-              onValueChange={(value) => setSelectedPlanId(value === "all" ? 0 : Number(value) || 0)}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="全部供应商" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">全部供应商</SelectItem>
-                {plans?.map((plan) => (
-                  <SelectItem key={plan.id} value={plan.id.toString()}>
-                    {plan.fileName} ({plan.planStartDate} - {plan.planEndDate})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+        <CardContent>
+          <div className="mb-4 flex gap-2">
+            <Button variant="outline" size="sm" onClick={handleDownloadEmailTemplate} className="gap-2">
+              <Download className="w-4 h-4" />
+              下载邮箱导入模板
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => emailImportInputRef.current?.click()} className="gap-2">
+              <Upload className="w-4 h-4" />
+              导入邮箱
+            </Button>
+            <input
+              ref={emailImportInputRef}
+              type="file"
+              accept=".xlsx,.xls"
+              onChange={handleEmailImportFileChange}
+              className="hidden"
+            />
           </div>
 
-          {/* 供应商表格 */}
-          <div>
           {suppliersLoading ? (
-            <div className="flex items-center justify-center py-8">
-              <AlertCircle className="h-6 w-6 animate-spin" />
-            </div>
+            <div className="text-center py-8 text-gray-500">加载中...</div>
           ) : suppliers && suppliers.length > 0 ? (
-            <div className="border rounded-md">
+            <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -417,76 +362,71 @@ export default function SupplierManagement({ onMappingComplete }: SupplierManage
                     <TableHead>联系人</TableHead>
                     <TableHead>邮箱</TableHead>
                     <TableHead>电话</TableHead>
-                    <TableHead className="text-right">操作</TableHead>
+                    <TableHead>操作</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {suppliers.map((supplier) => (
+                  {suppliers.map(supplier => (
                     <TableRow key={supplier.id}>
                       <TableCell className="font-medium">{supplier.supplierName}</TableCell>
                       <TableCell>{supplier.contactPerson || '-'}</TableCell>
                       <TableCell>
                         {editingEmailId === supplier.id ? (
-                          <div className="flex items-center gap-2">
+                          <div className="flex gap-2">
                             <Input
-                              type="email"
                               value={editingEmailValue}
                               onChange={(e) => setEditingEmailValue(e.target.value)}
                               className="h-8"
-                              placeholder="请输入邮箱"
                             />
-                            <Button
-                              size="sm"
-                              onClick={() => handleSaveEmail(supplier.id)}
-                              disabled={updateSupplierEmailMutation.isPending}
-                            >
-                              保存
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={handleCancelEditEmail}
-                            >
-                              取消
-                            </Button>
+                            <Button size="sm" onClick={() => handleSaveEmail(supplier.id)}>保存</Button>
+                            <Button size="sm" variant="outline" onClick={handleCancelEditEmail}>取消</Button>
                           </div>
                         ) : (
-                          <div 
-                            className="cursor-pointer hover:text-primary"
-                            onClick={() => handleStartEditEmail(supplier.id, supplier.email || '')}
-                          >
-                            {supplier.email || '点击添加邮箱'}
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm">{supplier.email || '-'}</span>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleStartEditEmail(supplier.id, supplier.email || '')}
+                            >
+                              编辑
+                            </Button>
                           </div>
                         )}
                       </TableCell>
                       <TableCell>{supplier.phone || '-'}</TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          {supplierAccounts?.some((a) => a.account.supplierId === supplier.id) ? (
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              title="重置PIN码"
-                              onClick={() => handleResetPin(supplier.id, supplier.supplierName)}
-                            >
-                              <RotateCcw className="h-4 w-4" />
-                            </Button>
-                          ) : (
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              title="创建登录账号"
-                              onClick={() => handleCreateAccount(supplier.id, supplier.supplierName)}
-                            >
-                              <KeyRound className="h-4 w-4" />
-                            </Button>
-                          )}
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => handleDeleteSupplier(supplier.id, supplier.supplierName)}
-                          >
-                            <Trash2 className="h-4 w-4" />
+                      <TableCell>
+                        <div className="flex gap-2">
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <Button size="sm" variant="outline" className="gap-1">
+                                <KeyRound className="w-4 h-4" />
+                                创建账号
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent>
+                              <DialogHeader>
+                                <DialogTitle>创建供应商账号</DialogTitle>
+                                <DialogDescription>为 {supplier.supplierName} 创建登录账号</DialogDescription>
+                              </DialogHeader>
+                              <DialogFooter>
+                                <Button variant="outline" onClick={() => {}}>取消</Button>
+                                <Button onClick={() => {
+                                  handleCreateAccount(supplier.id, supplier.supplierName);
+                                  // 关闭对话框逻辑由mutation onSuccess处理
+                                }}>
+                                  创建
+                                </Button>
+                              </DialogFooter>
+                            </DialogContent>
+                          </Dialog>
+                          <Button size="sm" variant="outline" onClick={() => handleResetPin(supplier.id, supplier.supplierName)} className="gap-1">
+                            <RotateCcw className="w-4 h-4" />
+                            重置PIN码
+                          </Button>
+                          <Button size="sm" variant="outline" onClick={() => handleDeleteSupplier(supplier.id, supplier.supplierName)} className="gap-1 text-red-600">
+                            <Trash2 className="w-4 h-4" />
+                            删除
                           </Button>
                         </div>
                       </TableCell>
@@ -496,47 +436,55 @@ export default function SupplierManagement({ onMappingComplete }: SupplierManage
               </Table>
             </div>
           ) : (
-            <div className="text-center py-8 text-muted-foreground flex flex-col items-center gap-2">
-              <AlertCircle className="h-8 w-8" />
-              <p>暂无供应商，请先上传映射表或手动添加</p>
-            </div>
+            <div className="text-center py-8 text-gray-500">暂无供应商数据</div>
           )}
-          </div>
         </CardContent>
       </Card>
+
       {/* 账号凭证展示对话框 */}
       <Dialog open={accountDialogOpen} onOpenChange={setAccountDialogOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>供应商账号创建成功</DialogTitle>
-            <DialogDescription>请将以下登录凭证发送给供应商</DialogDescription>
+            <DialogDescription>请妥善保管以下登录凭证</DialogDescription>
           </DialogHeader>
           {accountResult && (
-            <div className="space-y-3 p-4 bg-muted rounded-lg">
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">供应商编号</span>
-                <span className="font-mono font-bold text-lg">{accountResult.supplierCode}</span>
+            <div className="space-y-4">
+              <div className="bg-blue-50 p-4 rounded-lg space-y-2">
+                <div>
+                  <Label className="text-sm text-gray-600">供应商名称</Label>
+                  <p className="font-medium">{accountResult.supplierName}</p>
+                </div>
+                <div>
+                  <Label className="text-sm text-gray-600">供应商编号</Label>
+                  <p className="font-mono font-medium text-lg">{accountResult.supplierCode}</p>
+                </div>
+                <div>
+                  <Label className="text-sm text-gray-600">默认PIN码</Label>
+                  <p className="font-mono font-medium text-lg">{accountResult.pinCode}</p>
+                </div>
+                <div>
+                  <Label className="text-sm text-gray-600">登录地址</Label>
+                  <p className="text-sm text-blue-600">{window.location.origin}/supplier-login</p>
+                </div>
               </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">默认PIN码</span>
-                <span className="font-mono font-bold text-lg">{accountResult.pinCode}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">登录地址</span>
-                <span className="text-sm font-mono">{window.location.origin}/supplier-login</span>
+              <div className="bg-yellow-50 p-3 rounded-lg text-sm text-yellow-800">
+                <p>⚠️ 供应商首次登录时需修改PIN码。建议通过邮件或微信发送这些凭证。</p>
               </div>
             </div>
           )}
-          <DialogFooter className="gap-2">
-            <Button onClick={handleCopyCredentials}>
-              <Copy className="h-4 w-4 mr-2" />复制凭证
+          <DialogFooter>
+            <Button onClick={handleCopyCredentials} className="gap-2">
+              <Copy className="w-4 h-4" />
+              复制凭证
             </Button>
-            <Button variant="outline" onClick={() => setAccountDialogOpen(false)}>
-              关闭
-            </Button>
+            <Button variant="outline" onClick={() => setAccountDialogOpen(false)}>关闭</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* 采购订单导入 */}
+      <PurchaseOrderImport />
     </div>
   );
 }

@@ -9,7 +9,7 @@ import { Factory, CheckCircle, Clock, Package, Truck, ClipboardCheck } from "luc
 
 const PROGRESS_STEPS = [
   { key: "material_prep", label: "备料", icon: Package },
-  { key: "production", label: "排产", icon: Factory },
+  { key: "scheduling", label: "排产", icon: Factory },
   { key: "quality_check", label: "质检", icon: ClipboardCheck },
   { key: "shipping", label: "出货", icon: Truck },
   { key: "delivered", label: "已交付", icon: CheckCircle },

@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { Bell, CheckCircle, Mail, AlertTriangle, Info } from "lucide-react";
+import { Bell, CheckCircle, Mail, AlertTriangle, Info, Clock } from "lucide-react";
 
 export default function SupplierMessages() {
   const { data, isLoading, refetch } = trpc.supplierPortal.getMessages.useQuery(undefined, {
@@ -49,8 +49,10 @@ export default function SupplierMessages() {
 
   const getIcon = (type: string) => {
     switch (type) {
-      case "plan_published": return <Mail className="w-4 h-4 text-blue-500" />;
-      case "status_change": return <AlertTriangle className="w-4 h-4 text-orange-500" />;
+      case "new_plan": return <Mail className="w-4 h-4 text-blue-500" />;
+      case "plan_update": return <AlertTriangle className="w-4 h-4 text-orange-500" />;
+      case "reminder": return <Clock className="w-4 h-4 text-yellow-500" />;
+      case "system": return <Info className="w-4 h-4 text-gray-500" />;
       default: return <Info className="w-4 h-4 text-gray-500" />;
     }
   };

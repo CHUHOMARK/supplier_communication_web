@@ -309,8 +309,13 @@ export const appRouter = router({
         phone: z.string().optional(),
         notes: z.string().optional(),
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ ctx, input }) => {
         const { id, ...data } = input;
+        // 验证供应商是否属于当前用户
+        const supplier = await db.getSupplierById(id);
+        if (!supplier || supplier.userId !== ctx.user.id) {
+          throw new TRPCError({ code: 'FORBIDDEN', message: '无权限操作此供应商' });
+        }
         await db.updateSupplier(id, data);
         return { success: true };
       }),
@@ -318,7 +323,12 @@ export const appRouter = router({
     // 删除供应商
     delete: protectedProcedure
       .input(z.object({ id: z.number() }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ ctx, input }) => {
+        // 验证供应商是否属于当前用户
+        const supplier = await db.getSupplierById(input.id);
+        if (!supplier || supplier.userId !== ctx.user.id) {
+          throw new TRPCError({ code: 'FORBIDDEN', message: '无权限操作此供应商' });
+        }
         await db.deleteSupplier(input.id);
         return { success: true };
       }),
@@ -329,7 +339,12 @@ export const appRouter = router({
         id: z.number(),
         email: z.string().email('请输入有效的邮箱地址'),
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ ctx, input }) => {
+        // 验证供应商是否属于当前用户
+        const supplier = await db.getSupplierById(input.id);
+        if (!supplier || supplier.userId !== ctx.user.id) {
+          throw new TRPCError({ code: 'FORBIDDEN', message: '无权限操作此供应商' });
+        }
         await db.updateSupplierEmail(input.id, input.email);
         return { success: true };
       }),
@@ -1953,6 +1968,7 @@ export const appRouter = router({
     create: protectedProcedure
       .input(z.object({
         supplierId: z.number(),
+        supplierName: z.string().optional(),
         pinCode: z.string().default('888888'),
       }))
       .mutation(async ({ ctx, input }) => {
@@ -1981,10 +1997,11 @@ export const appRouter = router({
           accountId,
           supplierCode,
           pinCode: input.pinCode,
+          supplierName: input.supplierName || '',
         };
       }),
     
-    // 重置PIN码
+    // 重置 PIN码
     resetPin: protectedProcedure
       .input(z.object({
         accountId: z.number(),

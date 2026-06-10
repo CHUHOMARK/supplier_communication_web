@@ -1752,3 +1752,16 @@
 - [x] 消息通知页面
 - [x] 设置页面
 - [x] 管理员创建供应商账号UI（含凭证展示对话框和复制功能）
+
+## 代码审查 - 关键问题修复
+
+- [x] 修复授权漏洞：supplier.update/delete/updateEmail 添加用户隔离检查
+- [x] 修复生产进度步骤名称：前端 "production" 改为 "scheduling"
+- [x] 修复消息类型映射：SupplierMessages.tsx 覆盖所有消息类型会值
+- [x] 修复凭证展示对话框：添加供应商名称显示
+- [x] 重构邮件导入：SupplierManagement.tsx 使用tRPC mutation替代原始伟上轮客
+- [x] 移除调试日志：清理SupplierManagement.tsx中的所有console.log
+- [ ] 替换confirm对话框：使用shadcn/ui AlertDialog替代原生确认
+- [ ] 添加账号启用/禁用功能：前端管理界面添加按预
+- [ ] 增强测试覆盖：添加路由级别的集成测试
+- [ ] 在me路由中检查isActive状态：禁用账号后强制重新登录
